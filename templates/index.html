@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Sahayaa – Smart Sanitary Pod Vending{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-chip">🌸 Available at 8 Mumbai stations</div>
+  <h1>Your Comfort,<br><em>Instantly Available</em></h1>
+  <p class="hero-sub">Private, dignified access to sanitary products at every station. Find a pod, pick your product, and collect in under 60 seconds.</p>
+  <div class="hero-actions">
+    <a href="/machines" class="btn btn-primary btn-lg">📍 Find a Pod Near You</a>
+    <button class="btn-emergency" onclick="openEmergencyModal()" id="emergencyHeroBtn">🆘 I Need a Pad NOW</button>
+  </div>
+  <p class="hero-note flex-center gap-6">
+    <span class="dot dot-green"></span> No signup needed &nbsp;·&nbsp; Guest access available &nbsp;·&nbsp; 100% private
+  </p>
+</section>
+
+<!-- FEATURES -->
+<div class="features-wrap">
+  <div class="features-heading">
+    <h2>Everything You Need. Nothing You Don't.</h2>
+    <p>Designed for real situations — in transit, in a rush, in need.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon pink">🔒</div>
+      <h3>100% Private</h3>
+      <p>Anonymous guest access. No account required. Use the Quick Exit button any time.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon purple">⚡</div>
+      <h3>Instant Dispense</h3>
+      <p>Select and collect in under 60 seconds. Designed for real urgency.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon blue">📍</div>
+      <h3>8 Mumbai Stations</h3>
+      <p>CST, Dadar, Andheri, Bandra, Thane, Borivali & more. Always nearby.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon teal">💝</div>
+      <h3>Free Access Zones</h3>
+      <p>Sponsored pods where all products are free. Community-funded dignity.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon amber">🛡️</div>
+      <h3>Real-time Stock</h3>
+      <p>Live availability indicators. Know before you go.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon slate">🌿</div>
+      <h3>Variety of Products</h3>
+      <p>Regular, Super, Overnight, Ultra-Thin, and Organic options at every pod.</p>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div style="text-align:center;">
+      <div class="section-label">Process</div>
+      <h2 style="font-size:clamp(1.5rem,3vw,2.25rem);font-weight:800;letter-spacing:-0.5px;">From Screen to Pocket in 3 Steps</h2>
+    </div>
+    <div class="how-grid">
+      <div class="how-step">
+        <div class="how-icon">📍</div>
+        <div class="how-step-num">Step 01</div>
+        <h3>Find Your Pod</h3>
+        <p>Browse the map or use emergency mode to instantly find the nearest Sahayaa pod at your station.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-icon">🛍️</div>
+        <div class="how-step-num">Step 02</div>
+        <h3>Select &amp; Confirm</h3>
+        <p>Choose your product — Regular, Super, or Overnight. Confirm with a simulated payment.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-icon">📦</div>
+        <div class="how-step-num">Step 03</div>
+        <h3>Collect &amp; Go</h3>
+        <p>Your product is dispensed instantly into the tray. Private, fast, and dignified.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AWARENESS -->
+<section class="awareness-section" id="mission">
+  <div class="aw-wrap" style="max-width:1200px;margin:0 auto;">
+    <div class="flex-between mb-32" style="flex-wrap:wrap;gap:16px;">
+      <div>
+        <div class="section-label">Menstrual Wellness</div>
+        <h2 style="font-size:clamp(1.5rem,3vw,2.25rem);font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;">Your Health Matters</h2>
+        <p style="color:var(--text-secondary);font-size:0.9375rem;">Breaking the stigma, one pod at a time.</p>
+      </div>
+    </div>
+    <div class="tips-grid">
+      <div class="tip-card"><div class="tip-emoji">🩺</div><h4>Track Your Cycle</h4><p>Understanding your menstrual cycle helps manage symptoms and plan your day with confidence.</p></div>
+      <div class="tip-card"><div class="tip-emoji">💧</div><h4>Stay Hydrated</h4><p>Drinking more water during your period can ease bloating and reduce cramping significantly.</p></div>
+      <div class="tip-card"><div class="tip-emoji">🌿</div><h4>Go Organic</h4><p>Choosing organic pads reduces exposure to chemicals and is kinder to your skin and the planet.</p></div>
+      <div class="tip-card"><div class="tip-emoji">🥗</div><h4>Iron-Rich Foods</h4><p>Leafy greens, lentils, and nuts replenish iron lost during menstruation. Eat well, feel strong.</p></div>
+      <div class="tip-card"><div class="tip-emoji">🧘</div><h4>Rest &amp; Restore</h4><p>Light stretching and adequate rest can significantly ease period discomfort and mood swings.</p></div>
+      <div class="tip-card"><div class="tip-emoji">💬</div><h4>Talk About It</h4><p>Normalizing conversations about menstruation creates safer, more supportive communities for all.</p></div>
+    </div>
+
+    <!-- FAQs -->
+    <div style="margin-top:48px;">
+      <h3 style="font-size:1.25rem;font-weight:800;margin-bottom:20px;">Frequently Asked Questions</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:700px;">
+        <details class="faq"><summary>Do I need an account to use Sahayaa?</summary><div class="faq-body">No! You can use any Sahayaa pod as a guest — no registration, no login, no personal data stored. Accounts are optional and let you track history and earn community badges.</div></details>
+        <details class="faq"><summary>What does "Free Access Zone" mean?</summary><div class="faq-body">Some pods are sponsored by community members or organizations. In these zones, all products are available at zero cost. Look for the 💝 badge on the machines page.</div></details>
+        <details class="faq"><summary>How does the Quick Exit button work?</summary><div class="faq-body">Pressing 🚪 QUICK EXIT (or the Esc key) instantly hides the screen with a privacy overlay — useful if you need discretion in public spaces. Click anywhere to restore.</div></details>
+        <details class="faq"><summary>Is my transaction data private?</summary><div class="faq-body">Guest transactions are stored anonymously with no PII. If you're logged in, only you can see your history from your profile.</div></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPONSOR -->
+<section class="sponsor-section" id="sponsor">
+  <div class="sp-wrap">
+    <div style="font-size:2.5rem;margin-bottom:16px;">💝</div>
+    <div class="section-label" style="text-align:center;">Community Impact</div>
+    <h2 style="font-size:clamp(1.75rem,4vw,2.5rem);font-weight:900;letter-spacing:-0.5px;margin:8px 0 12px;">Sponsor a Pad</h2>
+    <p class="section-body" style="text-align:center;margin:0 auto 24px;">Help make a machine a Free Access Zone. Your small contribution restocks a pod for women who can't afford products.</p>
+
+    <div class="card card-padded" style="text-align:left;max-width:520px;margin:0 auto;">
+      <div class="form-group mb-16">
+        <label class="form-label">Choose a pod to sponsor</label>
+        <select class="form-input form-select" id="sponsorMachine"><option value="">Select a pod...</option></select>
+      </div>
+      <div class="mb-16">
+        <div class="form-label mb-8">Choose sponsorship amount</div>
+        <div class="amount-grid">
+          <button class="amount-btn selected" data-amount="20" onclick="selectAmount(this,20)">₹20<small>1 pad</small></button>
+          <button class="amount-btn" data-amount="40" onclick="selectAmount(this,40)">₹40<small>2 pads</small></button>
+          <button class="amount-btn" data-amount="100" onclick="selectAmount(this,100)">₹100<small>5 pads</small></button>
+          <button class="amount-btn" data-amount="200" onclick="selectAmount(this,200)">₹200<small>10 pads</small></button>
+          <button class="amount-btn" data-amount="500" onclick="selectAmount(this,500)">₹500<small>25 pads</small></button>
+        </div>
+      </div>
+      <button class="btn btn-primary w-full btn-lg" id="sponsorBtn" onclick="doSponsor()">💝 Sponsor Now (₹ <span id="sponsorAmtLabel">20</span>)</button>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let sponsorAmt = 20;
+
+function selectAmount(el, amt) {
+  sponsorAmt = amt;
+  document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('sponsorAmtLabel').textContent = amt;
+}
+
+async function doSponsor() {
+  const machine_id = document.getElementById('sponsorMachine').value;
+  if (!machine_id) { showToast('Please select a pod to sponsor.', 'warning'); return; }
+  const btn = document.getElementById('sponsorBtn');
+  btn.disabled = true; btn.textContent = 'Processing...';
+  try {
+    const res = await fetch('/api/sponsor', {
+      method:'POST',
+      headers: {'Content-Type':'application/json', ...getAuthHeader()},
+      body: JSON.stringify({machine_id, amount: sponsorAmt})
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('💝 Thank you! You\'ve sponsored ' + data.pads_added + ' pads!', 'success');
+      btn.textContent = '✅ Sponsored! Thank you';
+    } else {
+      showToast(data.error || 'Error processing sponsorship.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '💝 Sponsor Now (₹ <span id="sponsorAmtLabel">' + sponsorAmt + '</span>)';
+    }
+  } catch(e) {
+    showToast('Network error.', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '💝 Sponsor Now (₹ <span id="sponsorAmtLabel">' + sponsorAmt + '</span>)';
+  }
+}
+
+// Load machines for sponsor dropdown
+async function loadSponsorMachines() {
+  try {
+    const res = await fetch('/api/machines');
+    const machines = await res.json();
+    const sel = document.getElementById('sponsorMachine');
+    sel.innerHTML = '<option value="">Select a pod...</option>' +
+      machines.filter(m => m.status === 'active').map(m =>
+        `<option value="${m.id}">${m.name} – ${m.area || m.location.split(',')[0]}</option>`
+      ).join('');
+  } catch(e) {}
+}
+
+loadSponsorMachines();
+</script>
+{% endblock %}

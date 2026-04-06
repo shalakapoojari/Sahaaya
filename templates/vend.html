@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+{% block title %}{{ machine.name }} – Vend | Sahayaa{% endblock %}
+{% block meta_desc %}Pick your comfort at {{ machine.name }}. Instant, private, and hassle-free.{% endblock %}
+
+{% block content %}
+
+<!-- Vending Flow Modal Overlay -->
+<div class="flow-overlay" id="flowOverlay" role="dialog" aria-modal="true" aria-labelledby="flowTitle">
+  <div class="flow-card">
+    <!-- Step: Confirm -->
+    <div class="flow-step active" id="flowConfirm">
+      <div class="flow-icon-wrap pink-bg" id="flowIcon1" aria-hidden="true">🛍️</div>
+      <h3 id="flowTitle">Confirm Your Selection</h3>
+      <p>You're about to collect your product from this Sahayaa pod.</p>
+      <div class="txn-receipt" style="text-align:left;">
+        <div class="txn-row"><span class="label">Product</span><span class="val" id="fc-product">–</span></div>
+        <div class="txn-row"><span class="label">Machine</span><span class="val">{{ machine.name }}</span></div>
+        <div class="txn-row"><span class="label">Amount</span><span class="val" id="fc-amount">–</span></div>
+        <div class="txn-row"><span class="label">Payment</span><span class="val">Simulated</span></div>
+      </div>
+      <div class="flex gap-10 mt-16">
+        <button class="btn btn-ghost w-full" id="cancelBtn">Cancel</button>
+        <button class="btn btn-primary w-full" id="confirmBtn">Confirm &amp; Pay →</button>
+      </div>
+    </div>
+
+    <!-- Step: Payment Processing -->
+    <div class="flow-step" id="flowPayment">
+      <div class="flow-icon-wrap lavender-bg spin-anim" aria-hidden="true">💳</div>
+      <h3>Processing Payment...</h3>
+      <p>Securely verifying your simulated transaction. Please wait.</p>
+      <div class="spin-ring" aria-label="Loading"></div>
+      <div class="prog-track" style="margin-top:20px;">
+        <div class="prog-fill" id="payProg" style="--duration:2.4s;"></div>
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-top:10px;" id="payStepLabel">Contacting payment
+        gateway...</div>
+    </div>
+
+    <!-- Step: Dispensing -->
+    <div class="flow-step" id="flowDispensing">
+      <div class="flow-icon-wrap pink-bg" aria-hidden="true">
+        <div class="dispense-anim" id="dispenseAnim">
+          <div class="dispense-box" id="dispenseBox"></div>
+          <div class="dispense-tray"></div>
+        </div>
+      </div>
+      <h3>Dispensing Your Product...</h3>
+      <p>The machine is preparing your product. Please wait at the collection tray.</p>
+      <div class="prog-track">
+        <div class="prog-fill" id="dispProg" style="--duration:2s;"></div>
+      </div>
+      <div style="margin-top:20px;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <div class="dot dot-green"></div>
+        <span style="font-size:0.82rem;color:var(--text-secondary);" id="dispLabel">Unlocking tray...</span>
+      </div>
+    </div>
+
+    <!-- Step: Success -->
+    <div class="flow-step" id="flowSuccess">
+      <!-- Confetti -->
+      <div class="confetti-wrap" id="confettiWrap" aria-hidden="true"></div>
+      <div class="flow-icon-wrap teal-bg" style="margin-bottom:14px;" aria-hidden="true">✅</div>
+      <h3 style="color:var(--teal);">Your comfort has arrived! 🌸</h3>
+      <p>Please collect your product from the dispensing tray below the machine.</p>
+      <div class="txn-receipt">
+        <div class="txn-row"><span class="label">Transaction ID</span><span class="val" id="txnId">–</span></div>
+        <div class="txn-row"><span class="label">Product</span><span class="val" id="txnProduct">–</span></div>
+        <div class="txn-row"><span class="label">Amount Paid</span><span class="val" id="txnAmount">–</span></div>
+        <div class="txn-row"><span class="label">Time</span><span class="val" id="txnTime">–</span></div>
+      </div>
+      <div id="badgeEarned" class="badge-earned hidden" aria-live="polite"></div>
+      <button class="btn btn-primary w-full mt-16" id="doneBtn">🌸 Done – Thank you!</button>
+    </div>
+
+    <!-- Step: Error -->
+    <div class="flow-step" id="flowError">
+      <div class="flow-icon-wrap" style="background:#fee2e2;" aria-hidden="true">❌</div>
+      <h3 style="color:#dc2626;">Something went wrong</h3>
+      <p id="errMsg" style="color:#dc2626;">Please try again or select a different product.</p>
+      <button class="btn btn-ghost w-full mt-16" id="errClose">← Try Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN VENDING PAGE ─── -->
+<div class="vend-page">
+
+  <!-- Header Bar -->
+  <div class="vend-header">
+    <a href="/machines" class="btn btn-ghost btn-sm">← Back to Pods</a>
+    <div class="vend-machine-info">
+      <div class="flex gap-8 mb-4" style="justify-content:flex-end;flex-wrap:wrap;align-items:center;">
+        <span class="badge badge-{{ 'active' if machine.status == 'active' else 'inactive' }}">
+          <span class="dot dot-{{ 'green' if machine.status == 'active' else 'zinc' }}"></span>
+          {{ machine.status.title() }}
+        </span>
+        {% if machine.is_free_zone %}<span class="badge badge-free">💝 Free Access Zone</span>{% endif %}
+      </div>
+      <div class="vend-machine-name">{{ machine.name }}</div>
+      <div class="vend-machine-loc">📍 {{ machine.location }}</div>
+    </div>
+  </div>
+
+  <!-- Step Tracker -->
+  <div class="step-track" role="progressbar" aria-label="Vending steps">
+    <div class="step-item active" id="si1">
+      <div class="step-num">1</div><span>Select</span>
+    </div>
+    <div class="step-line" id="sl1"></div>
+    <div class="step-item" id="si2">
+      <div class="step-num">2</div><span>Confirm</span>
+    </div>
+    <div class="step-line" id="sl2"></div>
+    <div class="step-item" id="si3">
+      <div class="step-num">3</div><span>Collect</span>
+    </div>
+  </div>
+
+  <!-- Machine Title -->
+  <div class="vend-hero">
+    <div class="vend-hero-icon" aria-hidden="true">🏧</div>
+    <h2>Select Your Comfort</h2>
+    <p>Choose a product below. Simulated payment — no real charge.</p>
+    {% if machine.is_free_zone %}
+    <div class="free-zone-banner">💝 Free Access Zone · All products free, community-sponsored</div>
+    {% endif %}
+  </div>
+
+  <!-- Main Layout -->
+  <div class="vend-layout">
+
+    <!-- Products -->
+    <div>
+      <div class="prod-section-label">Available Products · {{ machine.name }}</div>
+      <div class="products-grid" id="productsGrid" role="list">
+        <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:48px;">
+          <div class="spinner" aria-label="Loading products"></div>
+        </div>
+      </div>
+      <div id="selectionHint" class="text-xs text-muted mt-8" aria-live="polite"></div>
+    </div>
+
+    <!-- Order Summary -->
+    <aside class="order-box" aria-label="Order summary">
+      <h3>🧾 Order Summary</h3>
+      <div id="orderSummaryBody">
+        <div class="order-empty">
+          <div class="oe-icon">👆</div>
+          <p>Select a product to see your order details</p>
+        </div>
+      </div>
+      <div class="order-cta-area">
+        <button class="btn btn-primary w-full btn-lg" id="startVendBtn" disabled>Start Vending Session →</button>
+        <div class="order-note">🔒 Simulated transaction · Zero real charge</div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<style>
+  /* Page-specific enhancements */
+  .flow-dispense-icon {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+  }
+
+  .vend-hero-icon {
+    transition: transform 0.6s ease;
+  }
+
+  .vend-hero-icon:hover {
+    transform: scale(1.05) rotate(-3deg);
+  }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const MACHINE_ID = Number("{{ machine.id }}");
+  const IS_FREE    = "{{ 'true' if machine.is_free_zone else 'false' }}" === "true";
+  const MACHINENAME = JSON.parse('{{ machine.name | tojson | safe }}');
+
+  const ICONS = { Regular: '🌸', Super: '💪', Overnight: '🌙', 'Ultra Thin': '✨', Organic: '🌿' };
+  const COLORS = {
+    Regular: 'linear-gradient(160deg,#fff0f4 0%,#ede9f8 60%,#e8f4fc 100%)',
+    Super: 'linear-gradient(160deg,#ede9f8 0%,#dde8f8 60%,#e8f4fc 100%)',
+    Overnight: 'linear-gradient(160deg,#1e1e3a 0%,#2a1e4f 60%,#162040 100%)',
+    'Ultra Thin': 'linear-gradient(160deg,#e8f4fc 0%,#ede9f8 60%,#fff0f4 100%)',
+    Organic: 'linear-gradient(160deg,#e0f5ee 0%,#e8f4fc 60%,#ede9f8 100%)',
+  };
+  const NIGHT_COLORS = ['Overnight'];
+
+  let selected = null;
+
+  // ─── Stock helpers ─────────────────────────────────────
+  function getStockInfo(qty) {
+    if (qty === 0) return { label: 'Out of Stock', cls: 'out', dot: 'dot-red', disabled: true };
+    if (qty <= 2) return { label: 'Only ' + qty + ' left', cls: 'low', dot: 'dot-amber', disabled: false };
+    if (qty <= 6) return { label: qty + ' in stock', cls: 'low', dot: 'dot-amber', disabled: false };
+    return { label: 'Available', cls: 'avail', dot: 'dot-green', disabled: false };
+  }
+
+  // ─── Render products ───────────────────────────────────
+  function renderProducts(items) {
+    const grid = document.getElementById('productsGrid');
+    if (!items.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">📦</div><h3>No products</h3><p>This machine has no products configured.</p></div>';
+      return;
+    }
+
+    grid.innerHTML = items.map(item => {
+      const type = item.product_type || (
+        item.product_name?.includes('Regular') ? 'Regular'
+          : item.product_name?.includes('Super') ? 'Super'
+            : item.product_name?.includes('Overnight') ? 'Overnight'
+              : item.product_name?.includes('Ultra') ? 'Ultra Thin'
+                : item.product_name?.includes('Organic') ? 'Organic' : 'Regular'
+      );
+      const si = getStockInfo(item.quantity);
+      const icon = ICONS[type] || '🌸';
+      const bg = COLORS[type] || COLORS.Regular;
+      const isNight = NIGHT_COLORS.includes(type);
+      const price = IS_FREE ? 0 : (item.product_price ?? 0);
+      const features = (item.product_features || '').split(',').filter(f => f.trim()).slice(0, 3);
+
+      return `
+    <div class="prod-card ${si.disabled ? 'disabled' : ''}${selected?.id === item.product_id ? ' selected' : ''}"
+         id="pc-${item.product_id}" role="listitem"
+         data-pid="${item.product_id}"
+         data-pname="${item.product_name.replace(/"/g, '&quot;')}"
+         data-price="${price}"
+         data-qty="${item.quantity}"
+         data-disabled="${si.disabled}"
+         tabindex="${si.disabled ? -1 : 0}"
+         aria-label="${item.product_name}, ${price === 0 ? 'Free' : '₹' + price}, ${si.label}">
+      <div class="prod-check" aria-hidden="true">✓</div>
+      <div class="prod-thumb" style="background:${bg};${isNight ? 'color:white;' : ''}" aria-hidden="true">
+        <div class="prod-thumb-icon">${icon}</div>
+      </div>
+      <div class="prod-body">
+        <div class="prod-type-tag">${type}</div>
+        <div class="prod-name">${item.product_name}</div>
+        ${features.length ? `<div class="prod-features">${features.map(f => `<span class="prod-feat-tag">${f.trim()}</span>`).join('')}</div>` : ''}
+        <div class="prod-footer">
+          <div class="prod-price${price === 0 ? ' free' : ''}">${price === 0 ? 'FREE' : '₹' + price}</div>
+          <div class="prod-avail ${si.cls}">
+            <span class="dot ${si.dot}" style="width:6px;height:6px;border-radius:50%;display:inline-block;"></span>
+            ${si.label}
+          </div>
+        </div>
+      </div>
+    </div>`;
+    }).join('');
+  }
+
+  // ─── Event delegation for product cards ───────────────
+  document.getElementById('productsGrid').addEventListener('click', e => {
+    const card = e.target.closest('.prod-card');
+    if (!card) return;
+    if (card.dataset.disabled === 'true') return;
+    selectProduct(
+      Number(card.dataset.pid),
+      card.dataset.pname,
+      Number(card.dataset.price),
+      Number(card.dataset.qty)
+    );
+  });
+  document.getElementById('productsGrid').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const card = e.target.closest('.prod-card');
+    if (!card || card.dataset.disabled === 'true') return;
+    selectProduct(
+      Number(card.dataset.pid),
+      card.dataset.pname,
+      Number(card.dataset.price),
+      Number(card.dataset.qty)
+    );
+  });
+
+
+  function selectProduct(id, name, price, qty) {
+    selected = { id, name, price, qty };
+    document.querySelectorAll('.prod-card').forEach(c => c.classList.remove('selected'));
+    const card = document.getElementById(`pc-${id}`);
+    if (card) card.classList.add('selected');
+    document.getElementById('selectionHint').textContent = '✅ ' + name + ' selected';
+    renderOrderSummary();
+    document.getElementById('startVendBtn').disabled = false;
+  }
+
+  function renderOrderSummary() {
+    if (!selected) return;
+    const fmtPrice = selected.price === 0 ? 'FREE 💝' : '₹' + selected.price;
+    document.getElementById('orderSummaryBody').innerHTML = `
+    <div class="order-row"><span class="label">Product</span><span class="val">${selected.name}</span></div>
+    <div class="order-row"><span class="label">Machine</span><span class="val" style="font-size:0.78rem;">${MACHINENAME}</span></div>
+    <div class="order-row"><span class="label">Payment</span><span class="val">Simulated</span></div>
+    <div class="order-row"><span class="label">Stock</span><span class="val">${selected.qty} remaining</span></div>
+    <div class="order-total">
+      <span>Total</span>
+      <span class="price${selected.price === 0 ? ' free' : ''}">${fmtPrice}</span>
+    </div>`;
+  }
+
+  // ─── Step UI helper ────────────────────────────────────
+  function setStep(n) {
+    ['si1', 'si2', 'si3'].forEach((id, i) => {
+      const el = document.getElementById(id);
+      el.classList.remove('active', 'done');
+      if (i + 1 < n) el.classList.add('done');
+      else if (i + 1 === n) el.classList.add('active');
+    });
+    ['sl1', 'sl2'].forEach((id, i) => {
+      document.getElementById(id).classList.toggle('done', i + 1 < n);
+    });
+  }
+
+  // ─── Flow steps ────────────────────────────────────────
+  function showFlowStep(id) {
+    document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Open flow
+  document.getElementById('startVendBtn').addEventListener('click', () => {
+    if (!selected) return;
+    document.getElementById('fc-product').textContent = selected.name;
+    document.getElementById('fc-amount').textContent = selected.price === 0 ? 'FREE (Sponsored)' : '₹' + selected.price;
+    showFlowStep('flowConfirm');
+    document.getElementById('flowOverlay').classList.add('active');
+    setStep(2);
+  });
+
+  // Cancel
+  document.getElementById('cancelBtn').addEventListener('click', () => {
+    document.getElementById('flowOverlay').classList.remove('active');
+    setStep(1);
+  });
+
+  // Confirm → payment → dispense → success
+  document.getElementById('confirmBtn').addEventListener('click', async () => {
+
+    // Payment step
+    showFlowStep('flowPayment');
+    const payProg = document.getElementById('payProg');
+    payProg.classList.add('animate');
+
+    const labels = ['Contacting payment gateway...', 'Verifying transaction...', 'Encrypting data...', 'Confirming payment...'];
+    let li = 0;
+    const labelEl = document.getElementById('payStepLabel');
+    const labelInt = setInterval(() => {
+      labelEl.textContent = labels[Math.min(li++, labels.length - 1)];
+    }, 600);
+
+    await delay(2500);
+    clearInterval(labelInt);
+
+    // Dispense step
+    showFlowStep('flowDispensing');
+    const dispProg = document.getElementById('dispProg');
+    dispProg.classList.add('animate');
+
+    const dispLabels = ['Unlocking tray...', 'Locating product...', 'Preparing dispense...', 'Almost ready!'];
+    let di = 0;
+    const dispEl = document.getElementById('dispLabel');
+    const dispInt = setInterval(() => {
+      dispEl.textContent = dispLabels[Math.min(di++, dispLabels.length - 1)];
+    }, 500);
+
+    // API call during dispense animation
+    let apiData;
+    try {
+      const res = await fetch('/api/vend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        body: JSON.stringify({ machine_id: MACHINE_ID, product_id: selected.id })
+      });
+      apiData = await res.json();
+    } catch (e) {
+      apiData = { success: false, error: 'Network error.' };
+    }
+
+    await delay(2000);
+    clearInterval(dispInt);
+
+    if (!apiData.success) {
+      document.getElementById('errMsg').textContent = apiData.error || 'Vending failed. Please try again.';
+      showFlowStep('flowError');
+      setStep(1);
+      return;
+    }
+
+    // Success
+    const txn = apiData.transaction || {};
+    document.getElementById('txnId').textContent = txn.transaction_id || '–';
+    document.getElementById('txnProduct').textContent = selected.name;
+    document.getElementById('txnAmount').textContent = selected.price === 0 ? 'FREE' : '₹' + (apiData.amount ?? selected.price);
+    document.getElementById('txnTime').textContent = new Date().toLocaleString('en-IN');
+
+    showFlowStep('flowSuccess');
+    setStep(3);
+    spawnConfetti();
+
+    // Badge check
+    const userStr = localStorage.getItem('sahayaa_user');
+    if (userStr) {
+      try {
+        const prevUser = JSON.parse(userStr);
+        const mr = await fetch('/api/auth/me', { headers: getAuthHeader() });
+        if (mr.ok) {
+          const newUser = await mr.json();
+          localStorage.setItem('sahayaa_user', JSON.stringify(newUser));
+          const newBadges = (newUser.badges || []).filter(b => !(prevUser.badges || []).includes(b));
+          if (newBadges.length) {
+            const el = document.getElementById('badgeEarned');
+            el.textContent = `🏅 New badge earned: ${newBadges[0].replace(/_/g, ' ')}!`;
+            el.classList.remove('hidden');
+          }
+        }
+      } catch (_) { }
+    }
+
+    // Refresh grid
+    loadInventory();
+  });
+
+  document.getElementById('doneBtn').addEventListener('click', () => {
+    document.getElementById('flowOverlay').classList.remove('active');
+    selected = null;
+    document.getElementById('startVendBtn').disabled = true;
+    document.getElementById('orderSummaryBody').innerHTML = '<div class="order-empty"><div class="oe-icon">👆</div><p>Select a product to see your order details</p></div>';
+    document.querySelectorAll('.prod-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('selectionHint').textContent = '';
+    setStep(1);
+    showToast('🌸 Thank you for using Sahayaa!', 'success');
+  });
+
+  document.getElementById('errClose').addEventListener('click', () => {
+    document.getElementById('flowOverlay').classList.remove('active');
+    setStep(1);
+  });
+
+  // Click outside flow card to close
+  document.getElementById('flowOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('flowOverlay')) {
+      document.getElementById('flowOverlay').classList.remove('active');
+      setStep(1);
+    }
+  });
+
+  // ─── Confetti ──────────────────────────────────────────
+  function spawnConfetti() {
+    const wrap = document.getElementById('confettiWrap');
+    wrap.innerHTML = '';
+    const colors = ['#e8547a', '#9b87c8', '#7ab8e8', '#f0a855', '#4dab8e'];
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti-particle';
+      p.style.cssText = `
+      left:${Math.random() * 90 + 5}%;
+      background:${colors[i % colors.length]};
+      width:${Math.random() * 8 + 4}px;
+      height:${Math.random() * 8 + 4}px;
+      border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
+      animation-delay:${Math.random() * 0.6}s;
+      animation-duration:${1.2 + Math.random() * 0.8}s;
+    `;
+      wrap.appendChild(p);
+    }
+  }
+
+  // ─── Load inventory ────────────────────────────────────
+  async function loadInventory() {
+    try {
+      const [mRes, pRes] = await Promise.all([
+        fetch(`/api/machines/${MACHINE_ID}`),
+        fetch('/api/products')
+      ]);
+      const mData = await mRes.json();
+      const products = pRes.ok ? await pRes.json() : [];
+      const pMap = {};
+      products.forEach(p => { pMap[p.id] = p; });
+
+      const items = (mData.inventory || []).map(item => ({
+        ...item,
+        product_type: pMap[item.product_id]?.type || null,
+        product_features: pMap[item.product_id]?.features || '',
+      }));
+      renderProducts(items);
+    } catch (e) {
+      document.getElementById('productsGrid').innerHTML =
+        '<div class="alert alert-error" style="grid-column:1/-1">Failed to load products. Please refresh.</div>';
+    }
+  }
+
+  loadInventory();
+</script>
+{% endblock %}

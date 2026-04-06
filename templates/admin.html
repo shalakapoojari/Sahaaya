@@ -1,0 +1,801 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard – Sahayaa{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-title">🌸 Sahayaa</div>
+      <div class="brand-subtitle">Admin Dashboard</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <div class="sidebar-nav-item active" data-section="overview" onclick="showSection('overview', this)">
+        📊 Dashboard
+      </div>
+      <div class="sidebar-nav-item" data-section="insights" onclick="showSection('insights', this)">
+        📈 Insights
+      </div>
+
+      <div class="sidebar-section-label" style="margin-top:8px;">Management</div>
+      <div class="sidebar-nav-item" data-section="machines" onclick="showSection('machines', this)">
+        📍 Machines
+      </div>
+      <div class="sidebar-nav-item" data-section="products" onclick="showSection('products', this)">
+        🩸 Products
+      </div>
+      <div class="sidebar-nav-item" data-section="inventory" onclick="showSection('inventory', this)">
+        📦 Inventory
+      </div>
+      <div class="sidebar-nav-item" data-section="transactions" onclick="showSection('transactions', this)">
+        🧾 Transactions
+      </div>
+      <div class="sidebar-nav-item" data-section="users" onclick="showSection('users', this)">
+        👥 Users
+      </div>
+
+      <div class="sidebar-section-label" style="margin-top:8px;">Quick Links</div>
+      <div class="sidebar-nav-item" onclick="window.location='/'">🏠 Homepage</div>
+      <div class="sidebar-nav-item" onclick="window.location='/machines'">🗺️ Find a Pod</div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+    <!-- Auth Gate -->
+    <div id="adminAuthGate" style="display:none; max-width:440px;margin:80px auto;text-align:center;">
+      <div style="font-size:3rem;margin-bottom:16px;">🔐</div>
+      <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:8px;">Admin Access</h2>
+      <p class="text-muted mb-24">Please log in with admin credentials to access the dashboard.</p>
+      <div style="text-align:left;display:flex;flex-direction:column;gap:12px;background:white;padding:28px;border-radius:var(--radius-lg);border:1px solid var(--border);">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="adminEmail" placeholder="admin@sahayaa.in" value="admin@sahayaa.in">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="adminPassword" placeholder="admin123" value="admin123">
+        </div>
+        <button class="btn btn-primary w-full" id="adminLoginBtn" onclick="adminLogin()">Login as Admin</button>
+        <div class="alert alert-info text-xs">Default: admin@sahayaa.in / admin123</div>
+      </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="adminContent" style="display:none;">
+      <!-- ─── OVERVIEW ─── -->
+      <section id="section-overview">
+        <div class="section-header mb-28">
+          <div>
+            <div class="section-title">📊 Dashboard Overview</div>
+            <div class="section-subtitle" id="dashLastUpdated">Loading...</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadAdminData()">↻ Refresh</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid mb-24">
+          <div class="stat-card">
+            <div class="stat-icon purple">📍</div>
+            <div class="stat-value" id="statMachines">–</div>
+            <div class="stat-label">Total Machines</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal">✅</div>
+            <div class="stat-value" id="statActive">–</div>
+            <div class="stat-label">Active Machines</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon pink">🧾</div>
+            <div class="stat-value" id="statTxns">–</div>
+            <div class="stat-label">Total Transactions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon amber">💰</div>
+            <div class="stat-value" id="statRevenue">–</div>
+            <div class="stat-label">Total Revenue</div>
+          </div>
+        </div>
+
+        <!-- Quick Info Row -->
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px;">
+          <!-- Most Used Machines -->
+          <div class="chart-container">
+            <div class="chart-title">🏆 Most Used Machines</div>
+            <div id="mostUsedChart"></div>
+          </div>
+          <!-- Low Stock Alerts -->
+          <div class="chart-container">
+            <div class="chart-title">⚠️ Low Stock Alerts</div>
+            <div id="lowStockList"></div>
+          </div>
+        </div>
+
+        <!-- Monthly Chart -->
+        <div class="chart-container">
+          <div class="chart-title">📈 Monthly Transactions</div>
+          <div style="position:relative;">
+            <div class="bar-chart" id="monthlyChart"></div>
+            <div style="display:flex;gap:10px;margin-top:24px;" id="monthlyLabels"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── INSIGHTS ─── -->
+      <section id="section-insights" class="hidden">
+        <div class="section-header mb-28">
+          <div><div class="section-title">📈 Insights & Analytics</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="chart-container">
+            <div class="chart-title">🕐 Peak Usage Hours</div>
+            <div id="peakHoursChart" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+          <div class="chart-container">
+            <div class="chart-title">📍 Machine Performance</div>
+            <div id="machinePerformanceList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── MACHINES ─── -->
+      <section id="section-machines" class="hidden">
+        <div class="section-header mb-28">
+          <div>
+            <div class="section-title">📍 Machine Management</div>
+            <div class="section-subtitle">Add, edit or toggle vending pod status</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openMachineModal()">+ Add Machine</button>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="machinesTable">
+              <thead><tr>
+                <th>Name</th><th>Location</th><th>Area</th>
+                <th>Status</th><th>Stock</th><th>Free Zone</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="machinesTableBody">
+                <tr><td colspan="7" style="text-align:center;padding:32px;"><div class="spinner" style="margin:auto;"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── PRODUCTS ─── -->
+      <section id="section-products" class="hidden">
+        <div class="section-header mb-28">
+          <div>
+            <div class="section-title">🩸 Product Management</div>
+            <div class="section-subtitle">Manage product catalog</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openProductModal()">+ Add Product</button>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="productsTable">
+              <thead><tr>
+                <th>Name</th><th>Type</th><th>Price</th><th>Description</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="productsTableBody">
+                <tr><td colspan="5" style="text-align:center;padding:32px;"><div class="spinner" style="margin:auto;"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── INVENTORY ─── -->
+      <section id="section-inventory" class="hidden">
+        <div class="section-header mb-28">
+          <div>
+            <div class="section-title">📦 Inventory Control</div>
+            <div class="section-subtitle">Assign products to machines and manage stock levels</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openInventoryModal()">+ Update Stock</button>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th>Machine</th><th>Product</th><th>Quantity</th><th>Status</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="inventoryTableBody">
+                <tr><td colspan="5" style="text-align:center;padding:32px;"><div class="spinner" style="margin:auto;"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TRANSACTIONS ─── -->
+      <section id="section-transactions" class="hidden">
+        <div class="section-header mb-28">
+          <div>
+            <div class="section-title">🧾 Transaction History</div>
+            <div class="section-subtitle" id="txnCount">Showing recent transactions</div>
+          </div>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th>Transaction ID</th><th>User</th><th>Machine</th><th>Product</th>
+                <th>Amount</th><th>Status</th><th>Time</th>
+              </tr></thead>
+              <tbody id="txnTableBody">
+                <tr><td colspan="7" style="text-align:center;padding:32px;"><div class="spinner" style="margin:auto;"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── USERS ─── -->
+      <section id="section-users" class="hidden">
+        <div class="section-header mb-28">
+          <div>
+            <div class="section-title">👥 Users</div>
+          </div>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th>Name</th><th>Email</th><th>Role</th><th>Badges</th><th>Sponsors</th><th>Joined</th>
+              </tr></thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="6" style="text-align:center;padding:32px;"><div class="spinner" style="margin:auto;"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Machine Modal -->
+<div class="modal-overlay" id="machineModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="machineModalTitle">Add Machine</h3>
+      <button class="modal-close" onclick="closeModal('machineModal')">✕</button>
+    </div>
+    <form id="machineForm" style="display:flex;flex-direction:column;gap:14px;">
+      <input type="hidden" id="machineId">
+      <div class="form-group">
+        <label class="form-label">Machine Name *</label>
+        <input type="text" class="form-input" id="machineName" placeholder="e.g. CST Station Pod #01" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Full Location *</label>
+        <input type="text" class="form-input" id="machineLocation" placeholder="Platform 1, Women's Waiting Room" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Area / Zone</label>
+        <input type="text" class="form-input" id="machineArea" placeholder="e.g. Mumbai Central">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input form-select" id="machineStatus">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Free Access Zone?</label>
+          <select class="form-input form-select" id="machineFreeZone">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="button" class="btn btn-secondary w-full" onclick="closeModal('machineModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary w-full">Save Machine</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="productModalTitle">Add Product</h3>
+      <button class="modal-close" onclick="closeModal('productModal')">✕</button>
+    </div>
+    <form id="productForm" style="display:flex;flex-direction:column;gap:14px;">
+      <input type="hidden" id="productId">
+      <div class="form-group">
+        <label class="form-label">Product Name *</label>
+        <input type="text" class="form-input" id="productName" required>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-input form-select" id="productType">
+            <option>Regular</option><option>Super</option><option>Overnight</option>
+            <option>Ultra Thin</option><option>Organic</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price (₹) *</label>
+          <input type="number" class="form-input" id="productPrice" min="0" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-input" id="productDesc" rows="2" style="resize:vertical;"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Features (comma separated)</label>
+        <input type="text" class="form-input" id="productFeatures" placeholder="Hypoallergenic, Breathable, 8hr Protection">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn btn-secondary w-full" onclick="closeModal('productModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary w-full">Save Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Inventory Modal -->
+<div class="modal-overlay" id="inventoryModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Update Stock</h3>
+      <button class="modal-close" onclick="closeModal('inventoryModal')">✕</button>
+    </div>
+    <form id="inventoryForm" style="display:flex;flex-direction:column;gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Machine</label>
+        <select class="form-input form-select" id="invMachine"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Product</label>
+        <select class="form-input form-select" id="invProduct"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantity</label>
+        <input type="number" class="form-input" id="invQuantity" min="0" value="10">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn btn-secondary w-full" onclick="closeModal('inventoryModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary w-full">Update Stock</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let adminToken = localStorage.getItem('sahayaa_token');
+let adminRole = null;
+let cachedStats = null;
+let allMachinesData = [];
+let allProductsData = [];
+
+function getAuthHeader() {
+  return adminToken ? {'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json'} : {'Content-Type': 'application/json'};
+}
+
+async function adminLogin() {
+  const email = document.getElementById('adminEmail').value;
+  const password = document.getElementById('adminPassword').value;
+  const btn = document.getElementById('adminLoginBtn');
+  btn.disabled = true; btn.textContent = 'Logging in...';
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    const data = await res.json();
+    if (res.ok && data.user.role === 'admin') {
+      adminToken = data.token;
+      adminRole = data.user.role;
+      localStorage.setItem('sahayaa_token', adminToken);
+      localStorage.setItem('sahayaa_user', JSON.stringify(data.user));
+      document.getElementById('adminAuthGate').style.display = 'none';
+      document.getElementById('adminContent').style.display = 'block';
+      loadAdminData();
+    } else {
+      showToast(data.user?.role !== 'admin' ? 'This account does not have admin access.' : (data.error || 'Login failed.'), 'error');
+    }
+  } catch(e) {
+    showToast('Network error.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Login as Admin';
+  }
+}
+
+async function checkAdminAuth() {
+  if (!adminToken) {
+    document.getElementById('adminAuthGate').style.display = 'block';
+    return;
+  }
+  try {
+    const res = await fetch('/api/auth/me', {headers: getAuthHeader()});
+    const data = await res.json();
+    if (res.ok && data.role === 'admin') {
+      adminRole = data.role;
+      document.getElementById('adminContent').style.display = 'block';
+      loadAdminData();
+    } else {
+      document.getElementById('adminAuthGate').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('adminAuthGate').style.display = 'block';
+  }
+}
+
+async function loadAdminData() {
+  document.getElementById('dashLastUpdated').textContent = 'Refreshing...';
+
+  const [statsRes, machinesRes, productsRes, invRes, txnRes, usersRes] = await Promise.allSettled([
+    fetch('/api/admin/stats', {headers: getAuthHeader()}),
+    fetch('/api/machines'),
+    fetch('/api/products'),
+    fetch('/api/inventory'),
+    fetch('/api/transactions?page=1', {headers: getAuthHeader()}),
+    fetch('/api/admin/users', {headers: getAuthHeader()})
+  ]);
+
+  if (statsRes.value?.ok) {
+    const stats = await statsRes.value.json();
+    cachedStats = stats;
+    renderOverview(stats);
+    renderInsights(stats);
+  }
+
+  if (machinesRes.value?.ok) {
+    allMachinesData = await machinesRes.value.json();
+    renderMachinesTable(allMachinesData);
+  }
+
+  if (productsRes.value?.ok) {
+    allProductsData = await productsRes.value.json();
+    renderProductsTable(allProductsData);
+  }
+
+  if (invRes.value?.ok) {
+    const inv = await invRes.value.json();
+    renderInventoryTable(inv);
+  }
+
+  if (txnRes.value?.ok) {
+    const txns = await txnRes.value.json();
+    renderTransactionsTable(txns.transactions);
+    document.getElementById('txnCount').textContent = `Showing ${txns.transactions.length} of ${txns.total} transactions`;
+  }
+
+  if (usersRes.value?.ok) {
+    const users = await usersRes.value.json();
+    renderUsersTable(users);
+  }
+
+  document.getElementById('dashLastUpdated').textContent = `Last updated: ${new Date().toLocaleTimeString('en-IN')}`;
+}
+
+function renderOverview(stats) {
+  const o = stats.overview;
+  document.getElementById('statMachines').textContent = o.total_machines;
+  document.getElementById('statActive').textContent = o.active_machines;
+  document.getElementById('statTxns').textContent = o.total_transactions;
+  document.getElementById('statRevenue').textContent = `₹${o.total_revenue.toLocaleString('en-IN')}`;
+
+  // Most used machines
+  const muEl = document.getElementById('mostUsedChart');
+  if (stats.most_used_machines.length === 0) {
+    muEl.innerHTML = '<p class="text-sm text-muted">No transactions yet.</p>';
+  } else {
+    const max = Math.max(...stats.most_used_machines.map(m => m.count));
+    muEl.innerHTML = stats.most_used_machines.map((m, i) => `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="font-size:0.85rem;font-weight:700;color:var(--lavender);width:20px;">#${i+1}</div>
+        <div style="flex:1;">
+          <div style="font-size:0.85rem;font-weight:600;margin-bottom:3px;">${m.name}</div>
+          <div style="height:6px;background:var(--lavender-light);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${(m.count/max*100).toFixed(0)}%;background:linear-gradient(90deg,var(--lavender),var(--orchid));border-radius:3px;"></div>
+          </div>
+        </div>
+        <div style="font-size:0.8125rem;font-weight:700;color:var(--text-secondary);width:40px;text-align:right;">${m.count}</div>
+      </div>`).join('');
+  }
+
+  // Low stock
+  const lsEl = document.getElementById('lowStockList');
+  if (stats.low_stock_alerts.length === 0) {
+    lsEl.innerHTML = '<div class="alert alert-success text-sm">✅ All machines well stocked!</div>';
+  } else {
+    lsEl.innerHTML = stats.low_stock_alerts.map(a =>
+      `<div class="alert alert-${a.quantity === 0 ? 'error' : 'warning'} text-sm mb-8">
+         ${a.quantity === 0 ? '❌' : '⚠️'} <strong>${a.machine}</strong> – ${a.product}: ${a.quantity} left
+       </div>`
+    ).join('');
+  }
+
+  // Monthly chart
+  const monthly = stats.monthly_data;
+  const mc = document.getElementById('monthlyChart');
+  const ml = document.getElementById('monthlyLabels');
+  if (monthly.length === 0) {
+    mc.innerHTML = '<p class="text-sm text-muted">No monthly data yet.</p>';
+  } else {
+    const maxCount = Math.max(...monthly.map(m => m.count), 1);
+    mc.innerHTML = monthly.map(m =>
+      `<div class="bar" style="height:${Math.max(4, (m.count/maxCount*130)).toFixed(0)}px;" title="${m.month}: ${m.count} transactions">
+         <div class="bar-label">${m.count}</div>
+       </div>`
+    ).join('');
+    ml.innerHTML = monthly.map(m =>
+      `<div style="flex:1;font-size:0.65rem;color:var(--muted);text-align:center;">${m.month?.slice(5) || m.month}</div>`
+    ).join('');
+  }
+}
+
+function renderInsights(stats) {
+  // Peak hours
+  const phEl = document.getElementById('peakHoursChart');
+  const maxPH = Math.max(...stats.peak_hours.map(h => h.count), 1);
+  phEl.innerHTML = stats.peak_hours.length === 0
+    ? '<p class="text-sm text-muted">No data yet.</p>'
+    : stats.peak_hours.map(h => {
+        const label = parseInt(h.hour) === 0 ? '12am' : parseInt(h.hour) < 12 ? `${parseInt(h.hour)}am` :
+                      parseInt(h.hour) === 12 ? '12pm' : `${parseInt(h.hour)-12}pm`;
+        return `<div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:48px;font-size:0.8125rem;color:var(--text-secondary);">${label}</div>
+          <div style="flex:1;height:8px;background:var(--lavender-light);border-radius:4px;">
+            <div style="width:${(h.count/maxPH*100).toFixed(0)}%;height:100%;background:linear-gradient(90deg,var(--lavender),var(--orchid));border-radius:4px;"></div>
+          </div>
+          <div style="width:24px;font-size:0.8125rem;font-weight:700;color:var(--text-secondary);">${h.count}</div>
+        </div>`;
+      }).join('');
+
+  // Machine performance
+  const mpEl = document.getElementById('machinePerformanceList');
+  mpEl.innerHTML = stats.most_used_machines.length === 0
+    ? '<p class="text-sm text-muted">No transactions yet.</p>'
+    : `<table style="width:100%;font-size:0.8125rem;border-collapse:collapse;">
+        <thead><tr>
+          <th style="text-align:left;padding:6px;color:var(--text-secondary);font-weight:600;">Machine</th>
+          <th style="text-align:right;padding:6px;color:var(--text-secondary);font-weight:600;">Uses</th>
+        </tr></thead>
+        <tbody>${stats.most_used_machines.map(m =>
+          `<tr><td style="padding:6px;font-weight:500;">${m.name}</td><td style="text-align:right;padding:6px;">${m.count}</td></tr>`
+        ).join('')}</tbody>
+      </table>`;
+}
+
+function renderMachinesTable(machines) {
+  const STOCK_LABELS = {available:'✅ Available', low_stock:'⚠️ Low', high_demand:'🔥 High Demand', out_of_stock:'❌ Out'};
+  document.getElementById('machinesTableBody').innerHTML = machines.map(m => `
+    <tr>
+      <td><span style="font-weight:600;">${m.name}</span></td>
+      <td style="max-width:200px;font-size:0.8125rem;color:var(--text-secondary);">${m.location}</td>
+      <td>${m.area || '–'}</td>
+      <td><span class="badge badge-${m.status === 'active' ? 'active' : 'inactive'}">${m.status}</span></td>
+      <td><span class="badge badge-${m.stock_status === 'available' ? 'available' : m.stock_status === 'out_of_stock' ? 'out' : 'low'}">${STOCK_LABELS[m.stock_status] || m.stock_status}</span></td>
+      <td>${m.is_free_zone ? '<span class="badge badge-free">💝 Yes</span>' : '–'}</td>
+      <td>
+        <div class="table-actions">
+          <button class="table-btn" onclick='editMachine(${JSON.stringify(m)})'>Edit</button>
+          <button class="table-btn" onclick="toggleMachineStatus(${m.id}, '${m.status === 'active' ? 'inactive' : 'active'}')">${m.status === 'active' ? 'Deactivate' : 'Activate'}</button>
+          <button class="table-btn danger" onclick="deleteMachine(${m.id})">Delete</button>
+        </div>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7" class="text-center text-muted" style="padding:24px;">No machines yet.</td></tr>';
+}
+
+function renderProductsTable(products) {
+  document.getElementById('productsTableBody').innerHTML = products.map(p => `
+    <tr>
+      <td><span style="font-weight:600;">${p.name}</span></td>
+      <td><span class="badge" style="background:var(--lavender-light);color:var(--lavender-dark);">${p.type || '–'}</span></td>
+      <td style="font-weight:700;">₹${p.price}</td>
+      <td style="max-width:200px;font-size:0.8125rem;color:var(--text-secondary);">${(p.description || '').slice(0,60)}...</td>
+      <td>
+        <div class="table-actions">
+          <button class="table-btn" onclick='editProduct(${JSON.stringify(p)})'>Edit</button>
+          <button class="table-btn danger" onclick="deleteProduct(${p.id})">Delete</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function renderInventoryTable(items) {
+  const STOCK_LABELS = {available:'✅', low_stock:'⚠️', high_demand:'🔥', out_of_stock:'❌'};
+  const getStatus = qty => qty === 0 ? 'out_of_stock' : qty <= 3 ? 'low_stock' : qty <= 8 ? 'high_demand' : 'available';
+  document.getElementById('inventoryTableBody').innerHTML = items.map(i => {
+    const st = getStatus(i.quantity);
+    return `<tr>
+      <td>${i.machine_name || '–'}</td>
+      <td>${i.product_name || '–'}</td>
+      <td><strong>${i.quantity}</strong></td>
+      <td>${STOCK_LABELS[st] || ''} ${st.replace('_',' ')}</td>
+      <td>
+        <button class="table-btn" onclick="quickUpdateStock(${i.machine_id}, ${i.product_id}, ${i.quantity}, '${i.machine_name}', '${i.product_name}')">Update</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="text-center" style="padding:24px;">No inventory records.</td></tr>';
+}
+
+function renderTransactionsTable(txns) {
+  const STATUS_COLORS = {completed:'badge-active', failed:'badge-out', sponsored:'badge-free'};
+  document.getElementById('txnTableBody').innerHTML = txns.map(t => `
+    <tr>
+      <td style="font-family:monospace;font-size:0.75rem;">${t.transaction_id}</td>
+      <td>${t.user_name || 'Guest'}</td>
+      <td style="font-size:0.8125rem;">${t.machine_name || '–'}</td>
+      <td>${t.product_name || '–'}</td>
+      <td style="font-weight:700;">${t.amount === 0 ? '<span style="color:var(--teal)">FREE</span>' : '₹' + t.amount}</td>
+      <td><span class="badge ${STATUS_COLORS[t.status] || 'badge-inactive'}">${t.status}</span></td>
+      <td style="font-size:0.8rem;">${new Date(t.timestamp).toLocaleString('en-IN')}</td>
+    </tr>`).join('') || '<tr><td colspan="7" class="text-center" style="padding:24px;">No transactions yet.</td></tr>';
+}
+
+function renderUsersTable(users) {
+  document.getElementById('usersTableBody').innerHTML = users.map(u => `
+    <tr>
+      <td style="font-weight:600;">${u.name}</td>
+      <td style="font-size:0.85rem;">${u.email}</td>
+      <td><span class="badge ${u.role === 'admin' ? 'badge-free' : 'badge-inactive'}">${u.role}</span></td>
+      <td>${(u.badges || []).map(b => `<span class="tag" style="font-size:0.7rem;margin-right:4px;">${b}</span>`).join('') || '–'}</td>
+      <td>${u.sponsor_count}</td>
+      <td style="font-size:0.8rem;">${new Date(u.created_at).toLocaleDateString('en-IN')}</td>
+    </tr>`).join('');
+}
+
+// Section Navigation
+function showSection(section, el) {
+  document.querySelectorAll('.admin-main section').forEach(s => s.classList.add('hidden'));
+  document.getElementById(`section-${section}`).classList.remove('hidden');
+  document.querySelectorAll('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+// Machine CRUD
+function openMachineModal(machine = null) {
+  document.getElementById('machineModalTitle').textContent = machine ? 'Edit Machine' : 'Add Machine';
+  document.getElementById('machineId').value = machine?.id || '';
+  document.getElementById('machineName').value = machine?.name || '';
+  document.getElementById('machineLocation').value = machine?.location || '';
+  document.getElementById('machineArea').value = machine?.area || '';
+  document.getElementById('machineStatus').value = machine?.status || 'active';
+  document.getElementById('machineFreeZone').value = machine?.is_free_zone ? 'true' : 'false';
+  document.getElementById('machineModal').classList.add('active');
+}
+
+function editMachine(m) { openMachineModal(m); }
+
+document.getElementById('machineForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('machineId').value;
+  const payload = {
+    name: document.getElementById('machineName').value,
+    location: document.getElementById('machineLocation').value,
+    area: document.getElementById('machineArea').value,
+    status: document.getElementById('machineStatus').value,
+    is_free_zone: document.getElementById('machineFreeZone').value === 'true'
+  };
+  const url = id ? `/api/machines/${id}` : '/api/machines';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {method, headers: getAuthHeader(), body: JSON.stringify(payload)});
+  if (res.ok) {
+    showToast(id ? 'Machine updated!' : 'Machine added!', 'success');
+    closeModal('machineModal');
+    loadAdminData();
+  } else {
+    const d = await res.json();
+    showToast(d.error || 'Error saving machine.', 'error');
+  }
+});
+
+async function toggleMachineStatus(id, newStatus) {
+  await fetch(`/api/machines/${id}`, {method:'PUT', headers:getAuthHeader(), body: JSON.stringify({status: newStatus})});
+  showToast(`Machine ${newStatus}!`, 'success');
+  loadAdminData();
+}
+
+async function deleteMachine(id) {
+  if (!confirm('Delete this machine and all its inventory? This cannot be undone.')) return;
+  const res = await fetch(`/api/machines/${id}`, {method:'DELETE', headers:getAuthHeader()});
+  if (res.ok) { showToast('Machine deleted.', 'success'); loadAdminData(); }
+}
+
+// Product CRUD
+function openProductModal(p = null) {
+  document.getElementById('productModalTitle').textContent = p ? 'Edit Product' : 'Add Product';
+  document.getElementById('productId').value = p?.id || '';
+  document.getElementById('productName').value = p?.name || '';
+  document.getElementById('productType').value = p?.type || 'Regular';
+  document.getElementById('productPrice').value = p?.price || '';
+  document.getElementById('productDesc').value = p?.description || '';
+  document.getElementById('productFeatures').value = p?.features || '';
+  document.getElementById('productModal').classList.add('active');
+}
+
+function editProduct(p) { openProductModal(p); }
+
+document.getElementById('productForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('productId').value;
+  const payload = {
+    name: document.getElementById('productName').value,
+    type: document.getElementById('productType').value,
+    price: parseFloat(document.getElementById('productPrice').value),
+    description: document.getElementById('productDesc').value,
+    features: document.getElementById('productFeatures').value
+  };
+  const url = id ? `/api/products/${id}` : '/api/products';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {method, headers:getAuthHeader(), body:JSON.stringify(payload)});
+  if (res.ok) {
+    showToast(id ? 'Product updated!' : 'Product added!', 'success');
+    closeModal('productModal');
+    loadAdminData();
+  } else {
+    const d = await res.json();
+    showToast(d.error || 'Error.', 'error');
+  }
+});
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  await fetch(`/api/products/${id}`, {method:'DELETE', headers:getAuthHeader()});
+  showToast('Product deleted.', 'success');
+  loadAdminData();
+}
+
+// Inventory
+function openInventoryModal() {
+  // Populate selects
+  const ms = document.getElementById('invMachine');
+  const ps = document.getElementById('invProduct');
+  ms.innerHTML = allMachinesData.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  ps.innerHTML = allProductsData.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('inventoryModal').classList.add('active');
+}
+
+function quickUpdateStock(machineId, productId, currentQty, machineName, productName) {
+  openInventoryModal();
+  document.getElementById('invMachine').value = machineId;
+  document.getElementById('invProduct').value = productId;
+  document.getElementById('invQuantity').value = currentQty;
+}
+
+document.getElementById('inventoryForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    machine_id: document.getElementById('invMachine').value,
+    product_id: document.getElementById('invProduct').value,
+    quantity: parseInt(document.getElementById('invQuantity').value)
+  };
+  const res = await fetch('/api/inventory', {method:'POST', headers:getAuthHeader(), body:JSON.stringify(payload)});
+  if (res.ok) {
+    showToast('Stock updated!', 'success');
+    closeModal('inventoryModal');
+    loadAdminData();
+  } else {
+    const d = await res.json();
+    showToast(d.error || 'Error.', 'error');
+  }
+});
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+});
+
+checkAdminAuth();
+</script>
+{% endblock %}

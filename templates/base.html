@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Sahayaa – Smart Sanitary Pod System{% endblock %}</title>
+<meta name="description" content="{% block meta_desc %}Sahayaa helps women find safe, private, and instant access to sanitary products via smart vending pods at railway stations and public spaces across Mumbai.{% endblock %}">
+<meta name="theme-color" content="#ffffff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- Van Gogh Artistic Background -->
+<div class="art-canvas" aria-hidden="true">
+  <div class="swirl swirl-1"></div>
+  <div class="swirl swirl-2"></div>
+  <div class="swirl swirl-3"></div>
+  <div class="swirl swirl-4"></div>
+</div>
+
+<!-- Privacy Overlay -->
+<div class="privacy-overlay" id="privacyOverlay" role="dialog" aria-label="Privacy screen active">
+  <div style="font-size:3rem;opacity:0.3;">🔒</div>
+  <h2>Screen Hidden</h2>
+  <p>Click anywhere or press <kbd>Esc</kbd> to return</p>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<!-- Emergency Modal -->
+<div class="modal-overlay" id="emergencyModal" role="dialog" aria-labelledby="emergencyModalTitle">
+  <div class="modal" style="max-width:420px;text-align:center;">
+    <div class="modal-header" style="justify-content:flex-end;margin-bottom:0;">
+      <button class="modal-close" onclick="document.getElementById('emergencyModal').classList.remove('active')" aria-label="Close">✕</button>
+    </div>
+    <div style="padding:10px 0 16px;">
+      <div style="font-size:3rem;margin-bottom:14px;">🆘</div>
+      <h2 id="emergencyModalTitle" style="font-size:1.375rem;font-weight:800;margin-bottom:8px;">Emergency Access</h2>
+      <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:20px;">Finding the nearest available Sahayaa pod for you...</p>
+      <div id="emergencyLoading" style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
+        <div class="spinner"></div><span style="font-size:0.875rem;color:var(--text-secondary);">Locating nearby pods...</span>
+      </div>
+      <div id="emergencyResult" class="hidden" style="text-align:left;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar" id="mainNavbar" role="navigation" aria-label="Main navigation">
+  <a href="/" class="nav-logo" aria-label="Sahayaa Home">
+    <div class="nav-logo-mark" aria-hidden="true">🌸</div>
+    <span>Sahayaa</span>
+  </a>
+
+  <ul class="nav-links" role="list">
+    <li><a href="/" class="{{ 'active' if request.endpoint == 'index' else '' }}">Home</a></li>
+    <li><a href="/machines" class="{{ 'active' if request.endpoint == 'machines_page' else '' }}">Find a Pod</a></li>
+    <li><a href="/#sponsor" class="{{ 'active' if request.endpoint == 'sponsor' else '' }}">Sponsorship</a></li>
+    <li><a href="/#mission">Our Mission</a></li>
+    <li><a href="/admin" class="{{ 'active' if request.endpoint == 'admin_page' else '' }}">Admin</a></li>
+  </ul>
+
+  <div class="nav-actions">
+    <div id="authNavArea">
+      <a href="/login" class="btn btn-ghost btn-sm" id="loginNavBtn">Login</a>
+    </div>
+    <button class="btn-quick-exit" id="quickExitBtn" aria-label="Quick exit for privacy">
+      🚪 QUICK EXIT <span>(ESC)</span>
+    </button>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main id="mainContent">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="footer" role="contentinfo">
+  <p class="footer-copy">© 2024 Sahayaa. Empowering women through accessible hygiene. 🌸</p>
+  <nav class="footer-links" aria-label="Footer navigation">
+    <a href="/#mission">Our Mission</a>
+    <a href="/#sponsor">Sponsor a Pad</a>
+    <a href="/machines">Find a Pod</a>
+    <a href="/admin">Admin</a>
+  </nav>
+</footer>
+
+<script>
+// ─── Quick Exit ───────────────────────────────────────────
+const overlay = document.getElementById('privacyOverlay');
+const exitBtn = document.getElementById('quickExitBtn');
+let privacyOn = false;
+
+function togglePrivacy(on) {
+  privacyOn = on;
+  overlay.classList.toggle('active', on);
+}
+if (exitBtn) exitBtn.addEventListener('click', () => togglePrivacy(true));
+if (overlay) overlay.addEventListener('click', () => togglePrivacy(false));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && privacyOn) togglePrivacy(false);
+});
+
+// ─── Toast ───────────────────────────────────────────────
+function showToast(msg, type = 'info', ms = 4000) {
+  const c = document.getElementById('toastContainer');
+  if (!c) return;
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.animation = 'none'; t.style.opacity = '0'; t.style.transform = 'translateX(110%)'; t.style.transition = '0.28s ease'; setTimeout(() => t.remove(), 300); }, ms);
+}
+
+// ─── Navbar scroll ───────────────────────────────────────
+const nav = document.getElementById('mainNavbar');
+window.addEventListener('scroll', () => nav && nav.classList.toggle('scrolled', scrollY > 8));
+
+// ─── Auth state ──────────────────────────────────────────
+function updateNavAuth() {
+  const area = document.getElementById('authNavArea');
+  if (!area) return;
+  const token = localStorage.getItem('sahayaa_token');
+  const user = JSON.parse(localStorage.getItem('sahayaa_user') || 'null');
+  if (token && user) {
+    area.innerHTML = `<div class="flex gap-8" style="align-items:center;">
+      <span style="font-size:0.875rem;font-weight:600;color:var(--pink);">👋 ${user.name.split(' ')[0]}</span>
+      ${user.role === 'admin' ? '<a href="/admin" class="btn btn-ghost btn-sm">Admin</a>' : ''}
+      <button onclick="logout()" class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:rgba(239,68,68,0.2);">Logout</button>
+    </div>`;
+  } else {
+    area.innerHTML = '<a href="/login" class="btn btn-ghost btn-sm" id="loginNavBtn">Login</a>';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('sahayaa_token');
+  localStorage.removeItem('sahayaa_user');
+  showToast('Logged out.', 'info');
+  setTimeout(() => location.reload(), 700);
+}
+
+function getAuthHeader() {
+  const t = localStorage.getItem('sahayaa_token');
+  return t ? {'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json'} : {'Content-Type': 'application/json'};
+}
+
+updateNavAuth();
+
+// ─── Emergency ───────────────────────────────────────────
+async function openEmergencyModal() {
+  const modal = document.getElementById('emergencyModal');
+  modal.classList.add('active');
+  document.getElementById('emergencyLoading').style.display = 'flex';
+  document.getElementById('emergencyResult').classList.add('hidden');
+  try {
+    const res = await fetch('/api/machines/emergency');
+    const data = await res.json();
+    document.getElementById('emergencyLoading').style.display = 'none';
+    const el = document.getElementById('emergencyResult');
+    el.classList.remove('hidden');
+    if (data.machine) {
+      const m = data.machine;
+      el.innerHTML = `
+        <div class="alert alert-success" style="margin-bottom:12px;">✅ Nearest available pod found!</div>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:16px;">
+          <div style="font-weight:700;font-size:0.975rem;margin-bottom:4px;">📍 ${m.name}</div>
+          <div style="font-size:0.83rem;color:var(--text-secondary);margin-bottom:12px;">${m.location}</div>
+          ${m.is_free_zone ? '<div style="color:var(--teal);font-size:0.82rem;font-weight:600;margin-bottom:8px;">💝 Free Access Zone – No payment needed</div>' : ''}
+          <a href="/vend/${m.id}" class="btn btn-primary w-full" style="text-decoration:none;display:flex;">Go to this Pod →</a>
+        </div>`;
+    } else {
+      el.innerHTML = `<div class="alert alert-warning">⚠️ No pods available near you right now. Please check again shortly.</div>
+        <a href="/machines" class="btn btn-ghost w-full mt-12" style="text-decoration:none;display:flex;">Browse All Pods</a>`;
+    }
+  } catch(e) {
+    document.getElementById('emergencyLoading').style.display = 'none';
+    document.getElementById('emergencyResult').innerHTML = '<div class="alert alert-error">Network error. Please try again.</div>';
+    document.getElementById('emergencyResult').classList.remove('hidden');
+  }
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

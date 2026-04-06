@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Login – Sahayaa{% endblock %}
+
+{% block content %}
+<div style="max-width:420px;margin:80px auto;padding:0 24px;">
+  <div class="text-center mb-32">
+    <div style="font-size:3rem;margin-bottom:12px;">🌸</div>
+    <h1 style="font-size:1.75rem;font-weight:800;margin-bottom:6px;">Welcome back</h1>
+    <p class="text-muted">Login to track your history and earn badges.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:24px;">
+        <button class="tab-btn active" id="loginTab" onclick="switchTab('login')">Login</button>
+        <button class="tab-btn" id="registerTab" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" id="loginEmail" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-full" id="loginSubmitBtn">Login</button>
+        <div class="alert alert-info text-xs" style="justify-content:flex-start;">
+          💡 Try: priya@example.com / priya123 (user) or admin@sahayaa.in / admin123 (admin)
+        </div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" style="display:none;flex-direction:column;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-input" id="regName" placeholder="Your name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" id="regEmail" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="regPassword" placeholder="Min 6 characters" required minlength="6">
+        </div>
+        <button type="submit" class="btn btn-primary w-full" id="regSubmitBtn">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <p class="text-center text-sm text-muted mt-16">
+    No account needed to use the vending machine. <a href="/machines" style="color:var(--lavender);">Find a pod →</a>
+  </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all var(--t-fast);
+}
+.tab-btn.active {
+  color: var(--lavender);
+  border-bottom-color: var(--lavender);
+  font-weight: 700;
+}
+</style>
+<script>
+function switchTab(tab) {
+  document.getElementById('loginForm').style.display = tab === 'login' ? 'flex' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? 'flex' : 'none';
+  document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+  document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+}
+
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('loginSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Logging in...';
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        email: document.getElementById('loginEmail').value,
+        password: document.getElementById('loginPassword').value
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem('sahayaa_token', data.token);
+      localStorage.setItem('sahayaa_user', JSON.stringify(data.user));
+      showToast('Welcome back, ' + data.user.name + '! 🌸', 'success');
+      setTimeout(() => {
+        window.location = data.user.role === 'admin' ? '/admin' : '/machines';
+      }, 1000);
+    } else {
+      showToast(data.error || 'Login failed.', 'error');
+    }
+  } catch(e) { showToast('Network error.', 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Login'; }
+});
+
+document.getElementById('registerForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('regSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: document.getElementById('regName').value,
+        email: document.getElementById('regEmail').value,
+        password: document.getElementById('regPassword').value
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem('sahayaa_token', data.token);
+      localStorage.setItem('sahayaa_user', JSON.stringify(data.user));
+      showToast('Account created! Welcome, ' + data.user.name + ' 🌸', 'success');
+      setTimeout(() => window.location = '/machines', 1000);
+    } else {
+      showToast(data.error || 'Registration failed.', 'error');
+    }
+  } catch(e) { showToast('Network error.', 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Create Account'; }
+});
+
+// Redirect if already logged in
+const token = localStorage.getItem('sahayaa_token');
+if (token) {
+  const user = JSON.parse(localStorage.getItem('sahayaa_user') || '{}');
+  showToast('You are already logged in!', 'success');
+}
+</script>
+{% endblock %}

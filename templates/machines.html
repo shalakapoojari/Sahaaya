@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Find a Pod – Sahayaa{% endblock %}
+{% block meta_desc %}Locate Sahayaa sanitary pad vending pods near you. Filter by availability, free zones, and area.{% endblock %}
+
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;padding:40px 40px 64px;">
+
+  <!-- Page Header -->
+  <div style="margin-bottom:36px;">
+    <div class="section-label">Pod Locator</div>
+    <div class="flex-between flex-wrap gap-12">
+      <div>
+        <h1 style="font-size:clamp(1.75rem,4vw,2.75rem);font-weight:900;letter-spacing:-1px;margin-bottom:6px;">Find a Pod Near You</h1>
+        <p style="color:var(--text-secondary);font-size:0.9375rem;">8 Sahayaa pods across Mumbai's busiest stations. Real-time availability.</p>
+      </div>
+      <button class="btn-emergency" onclick="openEmergencyModal()" id="emergencyPageBtn" style="flex-shrink:0;">🆘 I Need a Pad NOW</button>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px;" id="statsBar">
+    <div class="badge badge-green" style="padding:8px 14px;font-size:0.8125rem;"><span class="dot dot-green"></span> <span id="statActive">–</span> Active Pods</div>
+    <div class="badge badge-lavender" style="padding:8px 14px;font-size:0.8125rem;">📦 <span id="statAvail">–</span> With Stock</div>
+    <div class="badge badge-pink" style="padding:8px 14px;font-size:0.8125rem;">💝 <span id="statFree">–</span> Free Zones</div>
+    <div class="badge badge-amber" style="padding:8px 14px;font-size:0.8125rem;">⚠️ <span id="statLow">–</span> Low Stock</div>
+  </div>
+
+  <!-- Filters -->
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px;align-items:center;">
+    <div class="search-wrap" style="flex:1;min-width:200px;max-width:320px;">
+      <span class="s-icon">🔍</span>
+      <input type="text" class="form-input" id="searchInput" placeholder="Search by station or area..." oninput="filterMachines()">
+    </div>
+    <select class="form-input form-select" id="statusFilter" style="width:160px;" onchange="filterMachines()">
+      <option value="">All Status</option>
+      <option value="active">Active Only</option>
+      <option value="inactive">Inactive</option>
+    </select>
+    <select class="form-input form-select" id="stockFilter" style="width:160px;" onchange="filterMachines()">
+      <option value="">Any Stock</option>
+      <option value="available">In Stock</option>
+      <option value="low_stock">Low Stock</option>
+      <option value="out_of_stock">Out of Stock</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.875rem;font-weight:500;">
+      <input type="checkbox" id="freeFilter" onchange="filterMachines()" style="accent-color:var(--pink);width:16px;height:16px;">
+      💝 Free Zones only
+    </label>
+  </div>
+
+  <!-- Grid -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;" id="machinesGrid">
+    <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:56px;">
+      <div class="spinner" aria-label="Loading pods"></div>
+    </div>
+  </div>
+
+  <div id="noResults" class="empty-state hidden" style="padding:60px 20px;">
+    <div class="empty-state-icon">🔍</div>
+    <h3>No pods match your filters</h3>
+    <p>Try adjusting your search or removing a filter.</p>
+    <button class="btn btn-ghost mt-16" onclick="clearFilters()">Clear Filters</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allMachines = [];
+
+const STOCK_MAP = {
+  available: { text:'In Stock', cls:'badge-green', icon:'✅' },
+  high_demand: { text:'High Demand', cls:'badge-amber', icon:'🔥' },
+  low_stock: { text:'Low Stock', cls:'badge-amber', icon:'⚠️' },
+  out_of_stock: { text:'Out of Stock', cls:'badge-red', icon:'❌' },
+};
+
+function renderMachines(machines) {
+  const grid = document.getElementById('machinesGrid');
+  document.getElementById('noResults').classList.toggle('hidden', machines.length > 0);
+  if (!machines.length) { grid.innerHTML = ''; return; }
+
+  grid.innerHTML = machines.map(m => {
+    const st = STOCK_MAP[m.stock_status] || STOCK_MAP.out_of_stock;
+    const isActive = m.status === 'active';
+    return `
+    <div class="card machine-card" role="article" aria-label="${m.name}">
+      <div class="mc-top">
+        <div class="mc-body">
+          <div class="flex gap-6 mb-8" style="flex-wrap:wrap;align-items:center;">
+            <span class="badge badge-${isActive?'active':'inactive'}"><span class="dot dot-${isActive?'green':'zinc'}"></span> ${m.status}</span>
+            ${m.is_free_zone ? '<span class="badge badge-free">💝 Free Zone</span>' : ''}
+            <span class="badge ${st.cls}">${st.icon} ${st.text}</span>
+          </div>
+          <div class="mc-name">${m.name}</div>
+          <div class="mc-location">📍 ${m.location}</div>
+        </div>
+      </div>
+
+      ${m.inventory && m.inventory.length ? `
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 14px;">
+        ${m.inventory.slice(0,4).map(inv => `
+          <div style="display:flex;align-items:center;gap:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-full);padding:3px 9px;font-size:0.73rem;">
+            <span>${inv.quantity===0?'❌':inv.quantity<=3?'⚠️':'✅'}</span>
+            <span style="font-weight:500;color:var(--text-secondary);">${inv.product_name?.split(' ')[0]||'–'}</span>
+            <span style="font-weight:700;color:var(--text);">${inv.quantity}</span>
+          </div>`).join('')}
+      </div>` : ''}
+
+      <div class="mc-footer">
+        <div class="mc-area">${m.area || ''}</div>
+        ${isActive && m.stock_status !== 'out_of_stock' ? `
+          <a href="/vend/${m.id}" class="btn btn-primary btn-sm" style="text-decoration:none;">Start Vending →</a>
+        ` : `
+          <span class="btn btn-ghost btn-sm" style="opacity:0.5;cursor:not-allowed;">${!isActive?'Offline':'Out of Stock'}</span>
+        `}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterMachines() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const stock = document.getElementById('stockFilter').value;
+  const freeOnly = document.getElementById('freeFilter').checked;
+
+  const filtered = allMachines.filter(m => {
+    if (q && !m.name.toLowerCase().includes(q) && !m.location.toLowerCase().includes(q) && !(m.area||'').toLowerCase().includes(q)) return false;
+    if (status && m.status !== status) return false;
+    if (stock && m.stock_status !== stock) return false;
+    if (freeOnly && !m.is_free_zone) return false;
+    return true;
+  });
+  renderMachines(filtered);
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('stockFilter').value = '';
+  document.getElementById('freeFilter').checked = false;
+  filterMachines();
+}
+
+function updateStats(machines) {
+  document.getElementById('statActive').textContent = machines.filter(m=>m.status==='active').length;
+  document.getElementById('statAvail').textContent = machines.filter(m=>m.stock_status==='available'||m.stock_status==='high_demand').length;
+  document.getElementById('statFree').textContent = machines.filter(m=>m.is_free_zone).length;
+  document.getElementById('statLow').textContent = machines.filter(m=>m.stock_status==='low_stock').length;
+}
+
+async function loadMachines() {
+  try {
+    const res = await fetch('/api/machines');
+    allMachines = await res.json();
+    updateStats(allMachines);
+    renderMachines(allMachines);
+  } catch(e) {
+    document.getElementById('machinesGrid').innerHTML =
+      '<div class="alert alert-error" style="grid-column:1/-1">Failed to load pods. Please refresh.</div>';
+  }
+}
+
+loadMachines();
+</script>
+{% endblock %}
