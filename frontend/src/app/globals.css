@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');
+
+@import "tailwindcss";
+
+:root {
+  /* Soft Botanical Palette */
+  --sage-light: #F8FAF9;
+  --sage-medium: #E1E8E4;
+  --forest-soft: #2D4A3E;
+  --leaf-green: #86A397;
+  --blossom-pink: #F2D5D5;
+  --earth-tan: #D9CFC1;
+  
+  --magenta: #D47A9A; /* Softened magenta */
+  --teal: #5FB4A2;    /* Softened teal */
+  --gold: #D4AF37;    /* Earthy gold */
+  --coral: #E68A8A;   /* Softened coral */
+  
+  --text-primary: #2D4A3E;
+  --text-muted: rgba(45, 74, 62, 0.6);
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.8);
+
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'DM Sans', sans-serif;
+}
+
+@theme inline {
+  --color-sage-light: var(--sage-light);
+  --color-sage-medium: var(--sage-medium);
+  --color-forest: var(--forest-soft);
+  --color-leaf: var(--leaf-green);
+  --color-blossom: var(--blossom-pink);
+  --color-earth: var(--earth-tan);
+  
+  --color-magenta: var(--magenta);
+  --color-teal: var(--teal);
+  --color-gold: var(--gold);
+  --color-coral: var(--coral);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
+}
+
+body {
+  background: linear-gradient(135deg, var(--sage-light) 0%, var(--sage-medium) 100%);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Redefined (Soft & Natural) */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px rgba(45, 74, 62, 0.05);
+  border-radius: 24px;
+}
+
+/* Pulse Animations (Softened) */
+@keyframes pulse-teal {
+  0% { box-shadow: 0 0 0 0 rgba(95, 180, 162, 0.2); }
+  70% { box-shadow: 0 0 0 15px rgba(95, 180, 162, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(95, 180, 162, 0); }
+}
+
+@keyframes pulse-gold {
+  0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.2); }
+  70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+}
+
+@keyframes pulse-coral {
+  0% { box-shadow: 0 0 0 0 rgba(230, 138, 138, 0.2); }
+  70% { box-shadow: 0 0 0 15px rgba(230, 138, 138, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(230, 138, 138, 0); }
+}
+
+.glow-teal { animation: pulse-teal 3s infinite; background-color: var(--teal); }
+.glow-gold { animation: pulse-gold 3s infinite; background-color: var(--gold); }
+.glow-coral { animation: pulse-coral 3s infinite; background-color: var(--coral); }
+
+/* Custom Text Gradients (Sahayaa) */
+.text-gradient-sahayaa {
+  background: linear-gradient(to right, var(--forest-soft), var(--leaf-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Botanical Organic Shapes */
+.organic-shape-1 {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  background: var(--leaf-green);
+  opacity: 0.1;
+}
+
+/* Botanical Floating Animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(3deg); }
+}
+
+.animate-botanical {
+  animation: float 10s ease-in-out infinite;
+}
+
+/* Grainy Texture (Subtle) */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  mix-blend-mode: multiply;
+}

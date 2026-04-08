@@ -36,32 +36,21 @@ def generate_transaction_id():
 
 
 # ─────────────────────────────────────────────
-#  FRONTEND ROUTES
+#  API BASE ROUTE
 # ─────────────────────────────────────────────
 @app.route('/')
-def index():
-    return render_template('index.html')
+def api_root():
+    return jsonify({
+        'name': 'Sahayaa API',
+        'status': 'online',
+        'version': '2.0.0',
+        'docs': '/api/docs (future)'
+    }), 200
 
 
-@app.route('/machines')
-def machines_page():
-    return render_template('machines.html')
-
-
-@app.route('/vend/<int:machine_id>')
-def vend_page(machine_id):
-    machine = Machine.query.get_or_404(machine_id)
-    return render_template('vend.html', machine=machine)
-
-
-@app.route('/admin')
-def admin_page():
-    return render_template('admin.html')
-
-
-@app.route('/login')
-def login_page():
-    return render_template('login.html')
+@app.route('/api/status')
+def status():
+    return jsonify({'status': 'ok'}), 200
 
 
 # ─────────────────────────────────────────────
@@ -468,8 +457,14 @@ def get_transactions():
         return jsonify({'error': 'Admin access required'}), 403
 
     page = request.args.get('page', 1, type=int)
+    machine_id = request.args.get('machine_id', type=int)
     per_page = 20
-    txns = Transaction.query.order_by(desc(Transaction.timestamp)).paginate(page=page, per_page=per_page)
+    
+    query = Transaction.query
+    if machine_id:
+        query = query.filter_by(machine_id=machine_id)
+        
+    txns = query.order_by(desc(Transaction.timestamp)).paginate(page=page, per_page=per_page)
     return jsonify({
         'transactions': [t.to_dict() for t in txns.items],
         'total': txns.total,
