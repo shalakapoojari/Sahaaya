@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, LogIn, UserPlus, Search, MapPin, Globe, Leaf } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { useLanguage } from "../context/language-context";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -26,12 +27,16 @@ const TopNavbar = ({ activePage, onNavigate, isLoggedIn }: TopNavbarProps) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const { t } = useLanguage();
+
   const navLinks = [
-    { name: "Home", id: "home" },
-    { name: "Find a Pod", id: "find" },
-    { name: "Subscriptions", id: "subscription" },
-    { name: "History", id: "history" },
-    { name: "Admin", id: "admin" },
+    { name: t('navigation.home') || "Home", id: "home" },
+    { name: t('navigation.findAPod') || "Find a Pod", id: "find" },
+    { name: t('navigation.pharmacy') || "Find Pharmacy", id: "pharmacy" },
+    { name: t('navigation.livecare') || "Live Care", id: "livecare" },
+    { name: t('navigation.subscriptions') || "Subscriptions", id: "subscription" },
+    { name: t('navigation.about') || "About", id: "about" },
+    { name: t('navigation.dashboard') || "Admin", id: "admin" },
   ];
 
   const handleLinkClick = (id: string) => {

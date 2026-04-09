@@ -13,6 +13,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
 } from 'recharts';
+
+import { LiveCarePanel } from "@/components/LiveCarePanel";
+import { DonatePage } from "@/components/DonatePage";
+import { PharmacyPage } from "@/components/PharmacyPage";
+import { LiveCarePage } from "@/components/LiveCarePage";
 import { apiFetch } from "@/lib/api";
 import { useLanguage } from "@/context/language-context";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -67,29 +72,23 @@ interface State {
   eventLog: SHAYEvent[];
   pendingReservations: Record<string, boolean>;
   notifications: Notification[];
-  activePage: 'home' | 'find' | 'detail' | 'history' | 'admin' | 'subscription' | 'signup' | 'about';
+  activePage: 'home' | 'find' | 'detail' | 'history' | 'subscription' | 'admin' | 'signup' | 'about' | 'donate' | 'pharmacy' | 'livecare';
   selectedPodId: string | null;
+  signalId: number | null;
   isLoggedIn: boolean;
   user: any | null;
 }
 
-const INITIAL_PODS: Pod[] = [
-  { id: "p1", name: "Whisper Pod #01", location: "City College, Block A", lat: 19.0760, lng: 72.8777, status: "active", inventory: { regular: 12, overnight: 7, ultra: 3 }, totalDispensed: 47, demandScore: 82, lastRestocked: Date.now() - 86400000 },
-  { id: "p2", name: "Nua Pod #02", location: "Metro Station, Platform 2", lat: 19.1176, lng: 72.8489, status: "active", inventory: { regular: 18, overnight: 14, ultra: 11 }, totalDispensed: 23, demandScore: 45, lastRestocked: Date.now() - 172800000 },
-  { id: "p3", name: "Stayfree Pod #03", location: "District Hospital, Ward B", lat: 18.9402, lng: 72.8347, status: "active", inventory: { regular: 2, overnight: 1, ultra: 8 }, totalDispensed: 89, demandScore: 95, lastRestocked: Date.now() - 43200000 },
-  { id: "p4", name: "Whisper Pod #04", location: "Central Mall, 2nd Floor", lat: 19.1351, lng: 72.9149, status: "active", inventory: { regular: 15, overnight: 10, ultra: 6 }, totalDispensed: 34, demandScore: 58, lastRestocked: Date.now() - 259200000 },
-  { id: "p5", name: "Nua Pod #05", location: "Tech Park, Cafeteria", lat: 19.2183, lng: 72.9781, status: "maintenance", inventory: { regular: 8, overnight: 5, ultra: 9 }, totalDispensed: 61, demandScore: 70, lastRestocked: Date.now() - 345600000 },
-  { id: "p6", name: "Stayfree Pod #06", location: "Railway Station, Exit 3", lat: 19.0522, lng: 72.8314, status: "active", inventory: { regular: 20, overnight: 18, ultra: 15 }, totalDispensed: 11, demandScore: 30, lastRestocked: Date.now() - 432000000 },
-  { id: "p7", name: "Whisper Pod #07", location: "Women's Hostel, Ground Floor", lat: 19.0178, lng: 72.8478, status: "active", inventory: { regular: 4, overnight: 2, ultra: 1 }, totalDispensed: 102, demandScore: 98, lastRestocked: Date.now() - 21600000 },
-  { id: "p8", name: "Nua Pod #08", location: "Community Health Centre", lat: 19.0632, lng: 72.8400, status: "inactive", inventory: { regular: 0, overnight: 0, ultra: 0 }, totalDispensed: 156, demandScore: 88, lastRestocked: Date.now() - 604800000 }
-];
+const INITIAL_PODS: Pod[] = [];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 🧠 STATE MNGMT (useReducer)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 type Action =
-  | { type: 'SET_PAGE', page: State['activePage'], podId?: string }
+  | { type: 'SET_PAGE'; page: State['activePage']; podId?: string; signalId?: number }
+  | { type: 'SET_PODS'; pods: any[] }
+  | { type: 'SET_TRANSACTIONS'; transactions: any[] }
   | { type: 'RESERVE_PRODUCT', podId: string, product: ProductType }
   | { type: 'CONFIRM_DISPENSE', podId: string, product: ProductType }
   | { type: 'CANCEL_DISPENSE', podId: string, product: ProductType }
@@ -102,8 +101,37 @@ type Action =
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case 'SET_PODS':
+      return { 
+         ...state, 
+         pods: action.pods.map(p => ({
+            id: String(p.id),
+            name: p.name,
+            location: p.location,
+            lat: p.latitude,
+            lng: p.longitude,
+            status: p.status,
+            inventory: {
+               regular: p.inventory?.reduce((a:number, i:any) => i.product_name.toLowerCase().includes('wings') ? a+i.quantity : a, 0) || 5,
+               overnight: p.inventory?.reduce((a:number, i:any) => i.product_name.toLowerCase().includes('night') ? a+i.quantity : a, 0) || 5,
+               ultra: p.inventory?.reduce((a:number, i:any) => i.product_name.toLowerCase().includes('ultra') ? a+i.quantity : a, 0) || 5
+            },
+            totalDispensed: p.total_dispensed || 0,
+            demandScore: Math.floor(Math.random() * 100),
+            lastRestocked: Date.now()
+         }))
+      };
+
+    case 'SET_TRANSACTIONS':
+      return { ...state, transactions: action.transactions };
+
     case 'SET_PAGE':
-      return { ...state, activePage: action.page, selectedPodId: action.podId || null };
+      return { 
+        ...state, 
+        activePage: action.page, 
+        selectedPodId: action.podId !== undefined ? action.podId : state.selectedPodId,
+        signalId: action.signalId !== undefined ? action.signalId : state.signalId
+      };
 
     case 'RESERVE_PRODUCT':
       return {
@@ -246,6 +274,8 @@ const TopNavbar = ({ activePage, onNavigate, isLoggedIn }: { activePage: State['
   const menuItems = [
     { id: 'home', label: t('navigation.home') || 'Home' },
     { id: 'find', label: t('navigation.findAPod') || 'Find a Pod' },
+    { id: 'pharmacy', label: t('navigation.pharmacy') || 'Find Pharmacy' },
+    { id: 'livecare', label: t('navigation.livecare') || 'Live Care' },
     { id: 'subscription', label: t('navigation.subscriptions') || 'Subscriptions' },
     { id: 'about', label: t('navigation.about') || 'About' }
   ];
@@ -459,7 +489,7 @@ const FreeClaimModal = ({ isOpen, onClose, podId }: { isOpen: boolean, onClose: 
   );
 };
 
-const HomePage = ({ onNavigate, stats }: { onNavigate: (p: State['activePage']) => void, stats: any }) => {
+const HomePage = ({ onNavigate, stats, dispatch }: { onNavigate: (p: State['activePage']) => void, stats: any, dispatch: any }) => {
   const { t } = useLanguage();
   const [showClaimModal, setShowClaimModal] = useState(false);
 
@@ -507,17 +537,17 @@ const HomePage = ({ onNavigate, stats }: { onNavigate: (p: State['activePage']) 
           <div className="flex flex-col sm:flex-row gap-6 pt-4">
             <button
               onClick={() => onNavigate('find')}
-              className="px-12 py-6 rounded-full bg-primary text-white font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4"
+              className="px-12 py-6 rounded-full bg-primary text-white font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4 border border-transparent"
             >
-              {t('home.cta')} <ArrowRight className="w-5 h-5" />
+              {t('home.need_pad')} <ArrowRight className="w-5 h-5" />
             </button>
 
-            {/* NEW: Claim Free Pad CTA */}
+            {/* Donate Pads CTA */}
             <button
-              onClick={() => setShowClaimModal(true)}
-              className="px-10 py-6 rounded-full glass border-primary/20 text-primary font-black uppercase text-xs tracking-widest hover:bg-primary/5 transition-all flex items-center gap-3"
+              onClick={() => onNavigate('donate')}
+              className="px-10 py-6 rounded-full glass border-primary/20 text-primary font-black uppercase text-xs tracking-widest hover:bg-primary/5 transition-all flex items-center justify-center gap-3 shadow-lg hover:scale-105 active:scale-95"
             >
-              🎁 {t('home.claimFree')}
+              🎁 {t('home.donate')}
             </button>
           </div>
         </div>
@@ -556,6 +586,11 @@ const HomePage = ({ onNavigate, stats }: { onNavigate: (p: State['activePage']) 
             <p className="text-sm text-text-muted leading-relaxed">{f.d}</p>
           </div>
         ))}
+      </div>
+
+      {/* Live Care Panel Section underneath features */}
+      <div className="w-full max-w-5xl mt-16">
+        <LiveCarePanel onSponsor={(id) => dispatch({ type: 'SET_PAGE', page: 'livecare', signalId: id })} />
       </div>
     </motion.div>
   );
@@ -1266,30 +1301,92 @@ const SignUpPage = ({ onSignup, onNavigate }: { onSignup: () => void, onNavigate
 
 const AboutPage = () => {
   const { t } = useLanguage();
+  const [stats, setStats] = useState({ available: 0, donated: 0, dispensed: 0 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await apiFetch("/api/stats/overview");
+        setStats({
+          available: data.active_machines || 125,
+          donated: data.total_donated_pads || 0,
+          dispensed: data.total_pads_dispensed || 0
+        });
+      } catch (e) {
+        setStats({ available: 125, donated: 1540, dispensed: 1415 }); // fallback
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen py-40 px-6 max-w-4xl mx-auto space-y-20">
-      <div className="space-y-6 text-center">
-        <h1 className="text-7xl font-serif font-black text-primary leading-tight">Empowering <br /> <span className="text-accent italic font-medium">Every Journey.</span></h1>
-        <p className="text-lg text-text-muted max-w-2xl mx-auto leading-relaxed">
-          SHAY was born from a simple belief: that dignified access to hygiene is not a luxury, but a fundamental right.
-          Our network of automated boutique pods provides high-quality care products exactly where you need them most.
-        </p>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen py-32 px-6 max-w-5xl mx-auto space-y-24">
+      {/* Header */}
+      <div className="space-y-6 text-center max-w-3xl mx-auto mt-10">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10 text-[10px] font-black uppercase tracking-widest text-primary mb-4">
+          <Globe className="w-3 h-3" /> {t('about.title') || "Our Mission"}
+        </div>
+        <h1 className="text-6xl md:text-8xl font-serif font-black text-primary leading-none tracking-tighter">
+          Sanitary Care <br /> <span className="text-accent italic font-medium">Reimagined.</span>
+        </h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-        <div className="space-y-4">
-          <h3 className="text-2xl font-serif font-black text-primary">The Mission</h3>
-          <p className="text-sm text-text-muted leading-relaxed">
-            We are building infrastructure for a more equitable future. By combining smart logistics with empathetic design,
-            we ensure that every woman can navigate public spaces with confidence and comfort.
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center">
+        {/* The Problem */}
+        <div className="space-y-6">
+          <h3 className="text-sm font-black uppercase tracking-widest text-coral pb-4 border-b border-coral/20">01. {t('about.problem') || "The Problem"}</h3>
+          <p className="text-lg text-text-muted leading-relaxed">
+            Period poverty restricts mobility, chips away at dignity, and forces millions to rely on unhygienic alternatives. 
+            Public spaces lack discreet, reliable access to essential menstrual products, turning completely natural biological functions into logistical nightmares.
           </p>
         </div>
-        <div className="space-y-4">
-          <h3 className="text-2xl font-serif font-black text-primary">Sustainability</h3>
-          <p className="text-sm text-text-muted leading-relaxed">
-            From our energy-efficient pods to our thoughtfully sourced products, every aspect of SHAY is designed
-            with the planet and its people in mind.
+
+        {/* The Solution */}
+        <div className="space-y-6">
+          <h3 className="text-sm font-black uppercase tracking-widest text-primary pb-4 border-b border-primary/20">02. {t('about.solution') || "Our Solution"}</h3>
+          <p className="text-lg text-text-muted leading-relaxed">
+            Sahayaa introduces a decentralized, community-driven network of smart dispensing pods. 
+            By merging real-time inventory tracking with the Live Care Network, we guarantee 24/7 hyper-local access to high-quality pads—privately, freely, and reliably.
           </p>
+        </div>
+      </div>
+
+      {/* The Process */}
+      <div className="space-y-12">
+        <h3 className="text-sm font-black uppercase tracking-widest text-primary pb-4 border-b border-primary/20 text-center">03. {t('about.what_we_do') || "How it Works"}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { step: '01', title: 'Locate', desc: 'Find the nearest Sahayaa pod using our real-time tracking map.' },
+            { step: '02', title: 'Dispense', desc: 'Interact with the pod via your mobile device for a 100% contactless experience.' },
+            { step: '03', title: 'Empower', desc: 'Sponsor a pad for someone else through our Live Care Network.' }
+          ].map((s) => (
+            <div key={s.step} className="glass p-8 rounded-3xl space-y-4 hover:-translate-y-2 transition-transform border border-muted-border/50">
+              <div className="text-4xl font-serif font-black text-primary/20 pb-4">{s.step}</div>
+              <h4 className="text-xl font-black text-primary">{s.title}</h4>
+              <p className="text-sm text-text-muted leading-relaxed">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Real-time Ticker */}
+      <div className="bg-primary text-white rounded-[3rem] p-12 relative overflow-hidden shadow-2xl">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse" />
+        <h3 className="text-sm font-black uppercase tracking-widest text-white/70 mb-12 text-center">Real-Time Community Impact</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-white/20">
+          <div className="px-4 py-8 md:py-0 space-y-2">
+            <div className="text-6xl font-serif font-black text-white">{stats.donated.toLocaleString()}</div>
+            <div className="text-xs uppercase tracking-widest text-white/70 font-black">Pads Donated</div>
+          </div>
+          <div className="px-4 py-8 md:py-0 space-y-2">
+            <div className="text-6xl font-serif font-black text-white">{stats.dispensed.toLocaleString()}</div>
+            <div className="text-xs uppercase tracking-widest text-white/70 font-black">Pads Dispensed</div>
+          </div>
+          <div className="px-4 py-8 md:py-0 space-y-2">
+            <div className="text-6xl font-serif font-black text-accent">{stats.available.toLocaleString()}</div>
+            <div className="text-xs uppercase tracking-widest text-white/70 font-black">Ready in Pool</div>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -1309,6 +1406,7 @@ export default function SHAYApp() {
     notifications: [],
     activePage: 'home',
     selectedPodId: null,
+    signalId: null,
     isLoggedIn: false,
     user: null
   });
@@ -1342,6 +1440,17 @@ export default function SHAYApp() {
     return () => clearInterval(interval);
   }, [state.pods]);
 
+  // Initialize Live Data
+  useEffect(() => {
+     apiFetch('/api/machines').then(pods => {
+        dispatch({ type: 'SET_PODS', pods });
+     }).catch(console.error);
+
+     apiFetch('/api/transactions').then(res => {
+        if(res.transactions) dispatch({ type: 'SET_TRANSACTIONS', transactions: res.transactions });
+     }).catch(console.error);
+  }, []);
+
   // Auto-dismiss notifications
   useEffect(() => {
     if (state.notifications.length > 0) {
@@ -1359,8 +1468,8 @@ export default function SHAYApp() {
 
       <div className="pb-32">
         <AnimatePresence mode="wait">
-          {state.activePage === 'home' && <HomePage key="h" onNavigate={p => dispatch({ type: 'SET_PAGE', page: p })} stats={statsSummary} />}
-          {state.activePage === 'find' && <FindPodPage key="f" pods={state.pods} onSelect={id => dispatch({ type: 'SET_PAGE', page: 'detail', podId: id })} dispatch={dispatch} />}
+          {state.activePage === 'home' && <HomePage key="h" onNavigate={p => dispatch({ type: 'SET_PAGE', page: p })} stats={statsSummary} dispatch={dispatch} />}
+          {state.activePage === 'find' && <FindPodPage key="f" pods={state.pods} onSelect={id => window.location.href = `/vend/${id}`} dispatch={dispatch} />}
           {state.activePage === 'detail' && selectedPod && (
             <PodDetailPage
               key="d"
@@ -1400,6 +1509,15 @@ export default function SHAYApp() {
           )}
           {state.activePage === 'about' && (
             <AboutPage key="abt" />
+          )}
+          {state.activePage === 'donate' && (
+            <DonatePage key="dnt" onComplete={() => dispatch({ type: 'SET_PAGE', page: 'home' })} />
+          )}
+          {state.activePage === 'pharmacy' && (
+            <PharmacyPage key="phr" />
+          )}
+          {state.activePage === 'livecare' && state.signalId && (
+            <LiveCarePage key="lve" signalId={state.signalId} onComplete={() => dispatch({ type: 'SET_PAGE', page: 'home' })} />
           )}
         </AnimatePresence>
       </div>

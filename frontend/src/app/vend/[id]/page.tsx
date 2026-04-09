@@ -100,20 +100,21 @@ const VenderPage = () => {
   const handleVend = async () => {
     setVendingStatus('processing');
     try {
-      const res = await apiFetch(`/api/vend`, {
+      const res = await apiFetch(`/api/dispense`, {
         method: "POST",
         body: JSON.stringify({ 
-          machine_id: id,
+          session_id: localStorage.getItem('sh_device_hash') || `anon_${Date.now()}`,
           product_id: selectedProduct.product_id,
           quantity: quantity,
-          sponsored_added: isSponsoring,
-          sponsored_price: 45,
-          session_id: Math.random().toString(36).substring(7)
+          machine_id: machine.id,
+          lat: machine?.latitude || machine?.lat || 19.0,
+          lng: machine?.longitude || machine?.lon || 72.8
         })
       });
 
       if (res.success) {
         localStorage.setItem("sh_last_brand", selectedBrand.id);
+
         setTimeout(() => setVendingStatus('vending'), 1000);
         setTimeout(() => setVendingStatus('success'), 4000);
       }
@@ -135,6 +136,53 @@ const VenderPage = () => {
   if (!machine) return <div className="p-20 text-center">Machine not found</div>;
 
   const totalAmount = (selectedProduct?.product_price || 0) * quantity + (isSponsoring ? 45 : 0);
+
+  const handleProceedToCheckout = async () => {
+    // 1. Check if out of stock
+    if (selectedProduct && selectedProduct.quantity === 0) {
+      alert(t('common.unavailable') || "This product is out of stock. Initiating a Live Care Network request...");
+      try {
+        await apiFetch(`/api/livecare/signal`, {
+          method: "POST",
+          body: JSON.stringify({
+            session_id: localStorage.getItem('sh_device_hash') || `anon_${Date.now()}`,
+            area: machine?.area || machine?.location || "Nearby",
+            brand: selectedBrand.name,
+            product_type: selectedProduct.product_name,
+            product_id: selectedProduct.product_id,
+            qty: quantity,
+            lat: machine?.latitude || machine?.lat || 19.0,
+            lng: machine?.longitude || machine?.lon || 72.8
+          })
+        });
+      } catch (e) {
+        console.error("Failed to post need signal", e);
+      }
+      window.location.href = "/";
+      return;
+    }
+
+    // 2. Check claim limit for FREE dispenses or regular? 
+    // Wait, the prompt says limit is 1/day for *dispensing*, we will check the server.
+    const sessionId = localStorage.getItem('sh_device_hash') || `anon_${Date.now()}`;
+    localStorage.setItem('sh_device_hash', sessionId);
+    
+    try {
+      const res = await apiFetch(`/api/dispense/check`, {
+        method: "POST",
+        body: JSON.stringify({ session_id: sessionId })
+      });
+      if (!res.can_claim) {
+        alert(t('dispense.limit_reached') || "You've already claimed this today. Come back tomorrow.");
+        window.location.href = "/";
+        return;
+      }
+    } catch (e) {
+      console.error("Could not check claim limit", e);
+    }
+    
+    setStep(4);
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-surface relative">
@@ -372,7 +420,7 @@ const VenderPage = () => {
                 </div>
 
                 <button 
-                  onClick={() => setStep(4)}
+                  onClick={handleProceedToCheckout}
                   className="w-full btn-primary py-6 text-xs uppercase tracking-widest flex items-center justify-center gap-3"
                 >
                   {t('common.proceed')} <ChevronRight className="w-5 h-5" />

@@ -29,7 +29,9 @@ export const translations = {
       dashboard: "Dashboard",
       login: "Login",
       signup: "Sign Up",
-      accessPortal: "Access Portal"
+      accessPortal: "Access Portal",
+      pharmacy: "Find Pharmacy",
+      livecare: "Live Care",
     },
     home: {
       title: "Sahaaya Delivers.",
@@ -42,7 +44,9 @@ export const translations = {
         { t: "Always Stocked", d: "Predictive replenishment ensures you never find an empty pod." },
         { t: "Free & Dignified", d: "Private access designed for safety and absolute comfort." }
       ],
-      premiumCare: "Premium Care"
+      premiumCare: "Premium Care",
+      need_pad: "I need a pad right now",
+      donate: "Donate Pads"
     },
     find: {
       title: "Find a Pod.",
@@ -126,6 +130,45 @@ export const translations = {
     history: {
       title: "Activity History",
       noTransactions: "No transactions documented yet."
+    },
+    dispense: {
+      step1_title: "Select Brand",
+      select_brand: "Choose a brand you prefer",
+      step2_title: "Select Type",
+      select_type: "Select the specific type",
+      step3_title: "Select Quantity",
+      select_qty: "How many pads do you need?",
+      dispense_btn: "Dispense Now",
+      success: "Your pads are ready at Pod {pod}",
+      limit_reached: "You've already claimed today. Come back tomorrow."
+    },
+    donate: {
+      title: "Donate Pads",
+      select_brand: "Select brand to donate",
+      select_type: "Select type to donate",
+      select_qty: "How many to donate?",
+      confirm: "Donate Now",
+      thanks: "Thank you! Your donation helps someone nearby."
+    },
+    about: {
+      title: "Our Mission",
+      problem: "The Problem",
+      solution: "Our Solution",
+      what_we_do: "What We Do"
+    },
+    pharmacy: {
+      title: "Nearby Pharmacies",
+      finding: "Searching near you...",
+      open_now: "Open Now",
+      get_directions: "Get Directions"
+    },
+    livecare: {
+      title: "Live Care Network",
+      need_now: "X people need help right now",
+      sponsor: "Help Now",
+      fulfilling: "Thank you for helping someone today",
+      fulfilled: "A pad has been sponsored for you ❤️",
+      top_supporters: "Top Supporters"
     }
   },
   hi: {
@@ -155,7 +198,9 @@ export const translations = {
       dashboard: "डैशबोर्ड",
       login: "लॉगिन",
       signup: "साइन अप",
-      accessPortal: "पहुंच पोर्टल"
+      accessPortal: "पहुंच पोर्टल",
+      pharmacy: "फार्मेसी खोजें",
+      livecare: "लाइव केयर",
     },
     home: {
       title: "सहाय प्रदान करता है।",
@@ -168,7 +213,9 @@ export const translations = {
         { t: "हमेशा स्टॉक में", d: "पूर्वानुमानित पुनःपूर्ति सुनिश्चित करती है कि आप कभी भी खाली पॉड न पाएं।" },
         { t: "मुफ्त और गरिमापूर्ण", d: "सुरक्षा और पूर्ण आराम के लिए डिज़ाइन की गई निजी पहुंच।" }
       ],
-      premiumCare: "प्रीमियम देखभाल"
+      premiumCare: "प्रीमियम देखभाल",
+      need_pad: "मुझे अभी एक पैड की आवश्यकता है",
+      donate: "पैड दान करें"
     },
     find: {
       title: "पॉड खोजें।",
@@ -252,6 +299,45 @@ export const translations = {
     history: {
       title: "गतिविधि इतिहास",
       noTransactions: "अभी तक कोई लेनदेन दर्ज नहीं किया गया है।"
+    },
+    dispense: {
+      step1_title: "ब्रांड चुनें",
+      select_brand: "अपनी पसंद का ब्रांड चुनें",
+      step2_title: "प्रकार चुनें",
+      select_type: "विशिष्ट प्रकार चुनें",
+      step3_title: "मात्रा चुनें",
+      select_qty: "आपको कितने पैड चाहिए?",
+      dispense_btn: "अभी प्राप्त करें",
+      success: "आपके पैड पॉड {pod} पर तैयार हैं",
+      limit_reached: "आपने आज पहले ही दावा कर लिया है। कल वापस आएं।"
+    },
+    donate: {
+      title: "पैड दान करें",
+      select_brand: "दान करने के लिए ब्रांड चुनें",
+      select_type: "दान करने के लिए प्रकार चुनें",
+      select_qty: "कितने दान करने हैं?",
+      confirm: "अभी दान करें",
+      thanks: "धन्यवाद! आपका दान पास के किसी व्यक्ति की मदद करता है।"
+    },
+    about: {
+      title: "हमारा मिशन",
+      problem: "समस्या",
+      solution: "हमारा समाधान",
+      what_we_do: "हम क्या करते हैं"
+    },
+    pharmacy: {
+      title: "आसपास की फार्मेसियां",
+      finding: "आपके आस-पास खोजा जा रहा है...",
+      open_now: "अभी खुली हैं",
+      get_directions: "दिशा-निर्देश प्राप्त करें"
+    },
+    livecare: {
+      title: "लाइव केयर नेटवर्क",
+      need_now: "X लोगों को अभी मदद की ज़रूरत है",
+      sponsor: "अभी मदद करें",
+      fulfilling: "आज किसी की मदद करने के लिए धन्यवाद",
+      fulfilled: "आपके लिए एक पैड प्रायोजित किया गया है ❤️",
+      top_supporters: "शीर्ष समर्थक"
     }
   },
   mr: {
@@ -281,7 +367,9 @@ export const translations = {
       dashboard: "डॅशबोर्ड",
       login: "लॉगिन",
       signup: "साइन अप",
-      accessPortal: "प्रवेश पोर्टल"
+      accessPortal: "प्रवेश पोर्टल",
+      pharmacy: "फार्मसी शोधा",
+      livecare: "लाइव्ह केअर",
     },
     home: {
       title: "सहाय्य प्रदान करते.",
@@ -294,7 +382,9 @@ export const translations = {
         { t: "नेहमी स्टॉक मध्ये", d: "अंदाज वर्तवणारी पुनर्पूर्ती तुम्ही कधीही रिकामी पॉड शोधणार नाही याची खात्री करते." },
         { t: "विनामूल्य आणि सन्माननीय", d: "सुरक्षा आणि पूर्ण आरामासाठी डिझाइन केलेले खाजगी प्रवेश." }
       ],
-      premiumCare: "प्रीमियम काळजी"
+      premiumCare: "प्रीमियम काळजी",
+      need_pad: "मला आत्ता एका पॅडची गरज आहे",
+      donate: "पॅड दान करा"
     },
     find: {
       title: "पॉड शोधा.",
@@ -378,6 +468,45 @@ export const translations = {
     history: {
       title: "कार्यकलाप इतिहास",
       noTransactions: "अद्याप कोणतेही व्यवहार नोंदवलेले नाहीत."
+    },
+    dispense: {
+      step1_title: "ब्रँड निवडा",
+      select_brand: "तुमचा आवडता ब्रँड निवडा",
+      step2_title: "प्रकार निवडा",
+      select_type: "विशिष्ट प्रकार निवडा",
+      step3_title: "प्रमाण निवडा",
+      select_qty: "तुम्हाला किती पॅड हवे आहेत?",
+      dispense_btn: "आत्ता मिळवा",
+      success: "तुमचे पॅड पॉड {pod} वर तयार आहेत",
+      limit_reached: "तुम्ही आज आधीच दावा केला आहे. उद्या परत या."
+    },
+    donate: {
+      title: "पॅड दान करा",
+      select_brand: "दान करण्यासाठी ब्रँड निवडा",
+      select_type: "दान करण्यासाठी प्रकार निवडा",
+      select_qty: "किती दान करायचे आहेत?",
+      confirm: "आत्ता दान करा",
+      thanks: "धन्यवाद! तुमचे दान जवळच्या कुणालातरी मदत करेल."
+    },
+    about: {
+      title: "आमचे ध्येय",
+      problem: "समस्या",
+      solution: "आमचा उपाय",
+      what_we_do: "आम्ही काय करतो"
+    },
+    pharmacy: {
+      title: "जवळच्या फार्मसी",
+      finding: "तुमच्या जवळ शोधत आहे...",
+      open_now: "आत्ता उघडे",
+      get_directions: "दिशा मिळवा"
+    },
+    livecare: {
+      title: "लाइव्ह केअर नेटवर्क",
+      need_now: "X लोकांना आत्ता मदतीची गरज आहे",
+      sponsor: "आत्ता मदत करा",
+      fulfilling: "आज कुणालातरी मदत केल्याबद्दल धन्यवाद",
+      fulfilled: "तुमच्यासाठी एक पॅड प्रायोजित केला आहे ❤️",
+      top_supporters: "शीर्ष समर्थक"
     }
   }
 };

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   BarChart3, Users, Package, DollarSign, 
   AlertTriangle, Search, Filter, Plus, 
-  MapPin, Clock, MoreHorizontal, X, ArrowRight, Table
+  MapPin, Clock, MoreHorizontal, X, ArrowRight, Table, Shield
 } from "lucide-react";
 import DashboardCard from "@/components/DashboardCard";
 import { apiFetch } from "@/lib/api";
@@ -17,6 +17,9 @@ const AdminPage = () => {
   const [machines, setMachines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminCreds, setAdminCreds] = useState({ username: "", password: "" });
   
   const [filterMachineId, setFilterMachineId] = useState<string>("all");
   const [isAddPodOpen, setIsAddPodOpen] = useState(false);
@@ -67,13 +70,61 @@ const AdminPage = () => {
     }
   };
 
-  if (loading && !stats) {
+  if (loading && !stats && isAuthenticated) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-20 bg-off-white">
          <div className="w-12 h-12 border-4 border-gold/10 border-t-gold rounded-full animate-spin mb-4" />
          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate/40">Securing Admin Session...</span>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+     return (
+        <div className="flex-1 flex flex-col items-center justify-center min-h-screen p-6 relative overflow-hidden bg-[#1a1a1a]">
+           <div className="absolute inset-0 bg-gradient-to-tr from-gold/5 via-transparent to-transparent pointer-events-none" />
+           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="glass p-12 max-w-sm w-full space-y-8 relative z-10 border-gold/10">
+              <div className="space-y-2 text-center pb-4 border-b border-white/5">
+                 <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-gold/20">
+                    <Shield className="w-8 h-8" />
+                 </div>
+                 <h1 className="text-3xl font-serif font-black text-white italic">Sahayaa <span className="text-gold">Admin.</span></h1>
+                 <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">Authorized Personnel Only</p>
+              </div>
+
+              <div className="space-y-4">
+                 <input 
+                   type="text" placeholder="Username" 
+                   value={adminCreds.username} onChange={e => setAdminCreds({...adminCreds, username: e.target.value})}
+                   className="w-full bg-white/5 text-white placeholder:text-white/30 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:border-gold/50 transition-colors"
+                 />
+                 <input 
+                   type="password" placeholder="Passcode" 
+                   value={adminCreds.password} onChange={e => setAdminCreds({...adminCreds, password: e.target.value})}
+                   className="w-full bg-white/5 text-white placeholder:text-white/30 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:border-gold/50 transition-colors"
+                 />
+              </div>
+
+              <button 
+                 onClick={() => {
+                    if (adminCreds.username === 'admin' && adminCreds.password === 'sahayaa2026') {
+                       setIsAuthenticated(true);
+                       fetchData();
+                    } else {
+                       alert('Invalid Access Vector');
+                    }
+                 }}
+                 className="w-full py-5 rounded-full bg-white text-[#1a1a1a] font-black text-[10px] uppercase tracking-widest hover:bg-gold hover:text-white transition-all shadow-xl"
+              >
+                 Initialize Session
+              </button>
+
+              <div className="pt-6 text-center text-[10px] font-black text-white/20 tracking-wider">
+                 <p>TEST CREDS: admin / sahayaa2026</p>
+              </div>
+           </motion.div>
+        </div>
+     );
   }
 
   return (

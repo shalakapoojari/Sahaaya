@@ -70,6 +70,7 @@ class Machine(db.Model):
             'sponsored_pads': self.sponsored_pads,
             'stock_status': self.get_stock_status(),
             'total_stock': total_stock,
+            'inventory': [item.to_dict() for item in self.inventory_items],
             'created_at': self.created_at.isoformat()
         }
 
@@ -195,4 +196,104 @@ class Transaction(db.Model):
             'status': self.status,
             'payment_method': self.payment_method,
             'timestamp': self.timestamp.isoformat()
+        }
+
+
+class AnonymousSession(db.Model):
+    __tablename__ = 'anonymous_sessions'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), unique=True, nullable=False)
+    device_hash = db.Column(db.String(255), nullable=True)
+    last_claim_date = db.Column(db.String(50), nullable=True) # ISO date string
+    total_donated = db.Column(db.Integer, default=0)
+    total_sponsored = db.Column(db.Integer, default=0)
+    area = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'device_hash': self.device_hash,
+            'last_claim_date': self.last_claim_date,
+            'total_donated': self.total_donated,
+            'total_sponsored': self.total_sponsored,
+            'area': self.area,
+            'created_at': self.created_at.isoformat()
+        }
+
+
+class NeedSignal(db.Model):
+    __tablename__ = 'need_signals'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), nullable=False)
+    area = db.Column(db.String(100), nullable=False)
+    lat = db.Column(db.Float, nullable=True)
+    lng = db.Column(db.Float, nullable=True)
+    brand = db.Column(db.String(100), nullable=True)
+    product_type = db.Column(db.String(50), nullable=True)
+    product_id = db.Column(db.Integer, nullable=True)
+    qty = db.Column(db.Integer, default=1)
+    status = db.Column(db.String(20), default='open')  # 'open', 'matched', 'fulfilled', 'expired'
+    sponsored_by = db.Column(db.String(100), nullable=True)  # session ID of sponsor
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    fulfilled_at = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'area': self.area,
+            'lat': self.lat,
+            'lng': self.lng,
+            'brand': self.brand,
+            'product_type': self.product_type,
+            'product_id': self.product_id,
+            'qty': self.qty,
+            'status': self.status,
+            'sponsored_by': self.sponsored_by,
+            'created_at': self.created_at.isoformat(),
+            'expires_at': self.expires_at.isoformat(),
+            'fulfilled_at': self.fulfilled_at.isoformat() if self.fulfilled_at else None
+        }
+
+
+class Donation(db.Model):
+    __tablename__ = 'donations'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), nullable=False)
+    brand = db.Column(db.String(100), nullable=True)
+    product_type = db.Column(db.String(50), nullable=True)
+    qty = db.Column(db.Integer, default=1)
+    area = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'brand': self.brand,
+            'product_type': self.product_type,
+            'qty': self.qty,
+            'area': self.area,
+            'created_at': self.created_at.isoformat()
+        }
+
+
+class CommunityPool(db.Model):
+    __tablename__ = 'community_pool'
+    id = db.Column(db.Integer, primary_key=True)
+    total_available = db.Column(db.Integer, default=0)
+    total_donated = db.Column(db.Integer, default=0)
+    total_dispensed = db.Column(db.Integer, default=0)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'total_available': self.total_available,
+            'total_donated': self.total_donated,
+            'total_dispensed': self.total_dispensed,
+            'last_updated': self.last_updated.isoformat()
         }
