@@ -83,6 +83,10 @@ class Product(db.Model):
     type = db.Column(db.String(50), nullable=True)  # 'Regular', 'Super', 'Overnight', etc.
     image_url = db.Column(db.String(300), nullable=True)
     features = db.Column(db.String(500), nullable=True)  # JSON string of features
+    brand = db.Column(db.String(100), nullable=True)
+    tagline = db.Column(db.String(200), nullable=True)
+    color_accent = db.Column(db.String(20), nullable=True)
+    descriptor = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     inventory_items = db.relationship('Inventory', backref='product', lazy=True)
@@ -92,6 +96,10 @@ class Product(db.Model):
         return {
             'id': self.id,
             'name': self.name,
+            'brand': self.brand,
+            'tagline': self.tagline,
+            'color_accent': self.color_accent,
+            'descriptor': self.descriptor,
             'description': self.description,
             'price': self.price,
             'type': self.type,
@@ -107,6 +115,7 @@ class Inventory(db.Model):
     machine_id = db.Column(db.Integer, db.ForeignKey('machines.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=0)
+    sponsored_quantity = db.Column(db.Integer, nullable=False, default=0)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
@@ -123,7 +132,25 @@ class Inventory(db.Model):
             'product_name': self.product.name if self.product else None,
             'product_price': self.product.price if self.product else None,
             'quantity': self.quantity,
+            'sponsored_quantity': self.sponsored_quantity,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class GlobalSponsoredPool(db.Model):
+    __tablename__ = 'global_sponsored_pool'
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    count = db.Column(db.Integer, default=0)
+
+    product = db.relationship('Product', backref='global_pool', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'product_id': self.product_id,
+            'product_name': self.product.name if self.product else None,
+            'count': self.count
         }
 
 
@@ -135,6 +162,13 @@ class Transaction(db.Model):
     machine_id = db.Column(db.Integer, db.ForeignKey('machines.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    unit_price = db.Column(db.Float, nullable=True)
+    type = db.Column(db.String(50), default='purchase')  # 'purchase', 'sponsor_add', 'free_claim'
+    sponsored_added = db.Column(db.Boolean, default=False)
+    sponsored_price = db.Column(db.Float, default=0.0)
+    grand_total = db.Column(db.Float, nullable=True)
+    session_id = db.Column(db.String(100), nullable=True)
     status = db.Column(db.String(20), default='completed')  # 'completed', 'failed', 'sponsored'
     payment_method = db.Column(db.String(50), default='simulated')
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
@@ -151,6 +185,13 @@ class Transaction(db.Model):
             'product_id': self.product_id,
             'product_name': self.product.name if self.product else None,
             'amount': self.amount,
+            'quantity': self.quantity,
+            'unit_price': self.unit_price,
+            'type': self.type,
+            'sponsored_added': self.sponsored_added,
+            'sponsored_price': self.sponsored_price,
+            'grand_total': self.grand_total,
+            'session_id': self.session_id,
             'status': self.status,
             'payment_method': self.payment_method,
             'timestamp': self.timestamp.isoformat()

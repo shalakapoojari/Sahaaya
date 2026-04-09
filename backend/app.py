@@ -6,7 +6,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, desc
-from models import db, User, Machine, Product, Inventory, Transaction
+from models import db, User, Machine, Product, Inventory, Transaction, GlobalSponsoredPool
 from config import Config
 
 app = Flask(__name__)
@@ -333,6 +333,20 @@ def set_inventory():
     return jsonify(item.to_dict()), 200
 
 
+@app.route('/api/products/brands', methods=['GET'])
+def get_brands():
+    brands = db.session.query(
+        Product.brand, Product.tagline, Product.color_accent
+    ).filter(Product.brand != None).distinct().all()
+    
+    return jsonify([{
+        'id': b.brand.lower().replace(' ', '_'),
+        'name': b.brand,
+        'tagline': b.tagline,
+        'color': b.color_accent
+    } for b in brands]), 200
+
+
 # ─────────────────────────────────────────────
 #  VENDING / TRANSACTIONS API
 # ─────────────────────────────────────────────
@@ -342,6 +356,10 @@ def vend_product():
     data = request.get_json()
     machine_id = int(data['machine_id'])
     product_id = int(data['product_id'])
+    quantity = int(data.get('quantity', 1))
+    sponsored_added = bool(data.get('sponsored_added', False))
+    sponsored_price = float(data.get('sponsored_price', 0.0))
+    session_id = data.get('session_id')
 
     machine = Machine.query.get(machine_id)
     if not machine or machine.status != 'active':
@@ -356,14 +374,16 @@ def vend_product():
         machine_id=machine_id, product_id=product_id
     ).with_for_update().first()
 
-    if not inv or inv.quantity <= 0:
-        return jsonify({'error': 'Product is out of stock'}), 409
+    if not inv or inv.quantity < quantity:
+        return jsonify({'error': f'Only {inv.quantity if inv else 0} packs available'}), 409
 
-    # Determine price (free zone = 0)
-    amount = 0.0 if machine.is_free_zone else product.price
+    # Determine price
+    unit_price = 0.0 if machine.is_free_zone else product.price
+    base_amount = unit_price * quantity
+    grand_total = base_amount + (sponsored_price if sponsored_added else 0)
 
     # Deduct inventory
-    inv.quantity -= 1
+    inv.quantity -= quantity
 
     # Create transaction
     txn = Transaction(
@@ -371,11 +391,27 @@ def vend_product():
         user_id=current_user.id if current_user else None,
         machine_id=machine_id,
         product_id=product_id,
-        amount=amount,
+        amount=base_amount,
+        quantity=quantity,
+        unit_price=unit_price,
+        type='purchase',
+        sponsored_added=sponsored_added,
+        sponsored_price=sponsored_price,
+        grand_total=grand_total,
+        session_id=session_id,
         status='completed',
         payment_method='simulated'
     )
     db.session.add(txn)
+
+    # If user sponsored a pad during checkout, update global pool
+    if sponsored_added:
+        pool_item = GlobalSponsoredPool.query.filter_by(product_id=product_id).first()
+        if pool_item:
+            pool_item.count += 1
+        else:
+            pool_item = GlobalSponsoredPool(product_id=product_id, count=1)
+            db.session.add(pool_item)
 
     # Award badges if user is logged in
     if current_user:
@@ -385,6 +421,9 @@ def vend_product():
             badges.add('first_use')
         if user_txn_count >= 4:
             badges.add('frequent_user')
+        if sponsored_added:
+            badges.add('sponsor')
+            current_user.sponsor_count += 1
         badges.discard('')
         current_user.badges = ','.join(badges)
 
@@ -396,7 +435,7 @@ def vend_product():
         'remaining_stock': inv.quantity,
         'machine_name': machine.name,
         'product_name': product.name,
-        'amount': amount
+        'amount': base_amount
     }), 200
 
 
@@ -405,33 +444,44 @@ def sponsor_pad():
     current_user = get_current_user_optional()
     data = request.get_json()
     machine_id = int(data.get('machine_id', 0))
-    amount = float(data.get('amount', 20.0))
+    amount = float(data.get('amount', 45.0))
+    product_id = data.get('product_id')
 
-    machine = Machine.query.get(machine_id)
-    if not machine:
-        return jsonify({'error': 'Machine not found'}), 404
+    # Find closest matching product if not specified
+    if product_id:
+        p = Product.query.get(product_id)
+    else:
+        p = Product.query.order_by(Product.price).first()
 
-    # Add sponsored pads to machine (1 pad per ₹20)
-    pads_added = int(amount // 20)
-    machine.sponsored_pads += pads_added
+    if not p:
+        return jsonify({'error': 'No products available to sponsor'}), 404
 
-    # Find cheapest product and add to inventory
-    cheapest = Product.query.order_by(Product.price).first()
-    if cheapest and pads_added > 0:
-        inv = Inventory.query.filter_by(machine_id=machine_id, product_id=cheapest.id).first()
-        if inv:
-            inv.quantity += pads_added
-        else:
-            inv = Inventory(machine_id=machine_id, product_id=cheapest.id, quantity=pads_added)
-            db.session.add(inv)
+    # Increment global pool
+    pool_item = GlobalSponsoredPool.query.filter_by(product_id=p.id).first()
+    if pool_item:
+        pool_item.count += 1
+    else:
+        pool_item = GlobalSponsoredPool(product_id=p.id, count=1)
+        db.session.add(pool_item)
+
+    # If machine provided, also check if we can increment physical sponsored stock
+    if machine_id:
+        machine = Machine.query.get(machine_id)
+        if machine:
+            inv = Inventory.query.filter_by(machine_id=machine_id, product_id=p.id).first()
+            if inv:
+                inv.sponsored_quantity += 1
+                machine.sponsored_pads += 1
 
     # Log sponsorship transaction
     txn = Transaction(
         transaction_id=generate_transaction_id(),
         user_id=current_user.id if current_user else None,
-        machine_id=machine_id,
-        product_id=cheapest.id if cheapest else 1,
+        machine_id=machine_id if machine_id else 1, # default to main pod
+        product_id=p.id,
         amount=amount,
+        type='sponsor_add',
+        grand_total=amount,
         status='sponsored',
         payment_method='simulated'
     )
@@ -445,7 +495,79 @@ def sponsor_pad():
         current_user.badges = ','.join(badges)
 
     db.session.commit()
-    return jsonify({'success': True, 'pads_added': pads_added, 'message': f'Thank you! {pads_added} pad(s) sponsored.'}), 200
+    return jsonify({'success': True, 'message': 'Thank you! You sponsored a pad ❤️'}), 200
+
+
+@app.route('/api/claim-free', methods=['POST'])
+def claim_free_pad():
+    data = request.get_json()
+    machine_id = data.get('machine_id')
+    session_id = data.get('session_id')
+
+    # 1. Check specific pod's sponsored stock
+    if machine_id:
+        invs = Inventory.query.filter(
+            Inventory.machine_id == machine_id,
+            Inventory.sponsored_quantity > 0
+        ).all()
+        
+        if invs:
+            inv = invs[0]
+            inv.sponsored_quantity -= 1
+            # Log claim
+            txn = Transaction(
+                transaction_id=generate_transaction_id(),
+                machine_id=machine_id,
+                product_id=inv.product_id,
+                amount=0,
+                type='free_claim',
+                session_id=session_id,
+                status='completed'
+            )
+            db.session.add(txn)
+            db.session.commit()
+            return jsonify({
+                'success': True, 
+                'product_name': inv.product.name,
+                'message': 'Your free pad is being dispensed 🎁'
+            }), 200
+
+    # 2. Check global pool
+    pool_item = GlobalSponsoredPool.query.filter(GlobalSponsoredPool.count > 0).first()
+    if pool_item:
+        pool_item.count -= 1
+        # If machine provided, we deduct from regular stock if available but mark as free
+        # or we just dispense if we assume the machine has physical stock matching the pool
+        # For simplicity, we assume if it's in the global pool, any active machine can dispense it
+        # and we deduct from the FIRST machine that HAS this product in stock
+        inv = Inventory.query.filter(
+            Inventory.product_id == pool_item.product_id,
+            Inventory.quantity > 0
+        ).first()
+
+        if inv:
+            inv.quantity -= 1
+            txn = Transaction(
+                transaction_id=generate_transaction_id(),
+                machine_id=inv.machine_id,
+                product_id=inv.product_id,
+                amount=0,
+                type='free_claim',
+                session_id=session_id,
+                status='completed'
+            )
+            db.session.add(txn)
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'product_name': pool_item.product.name,
+                'message': 'Your free pad (from global pool) is being dispensed 🎁'
+            }), 200
+
+    return jsonify({
+        'success': False,
+        'message': 'No sponsored pads nearby right now. Check back soon 💛'
+    }), 404
 
 
 @app.route('/api/transactions', methods=['GET'])
@@ -573,13 +695,21 @@ def seed_database():
     )
     db.session.add(demo_user)
 
-    # Products
+    # Products (Extensible Brand + Subtype structure)
     products = [
-        Product(name='Regular Pad', description='Everyday comfort pad with soft cotton cover. Perfect for light to medium flow days.', price=10.0, type='Regular', features='Hypoallergenic,Breathable,Cotton Cover,8hr Protection'),
-        Product(name='Super Pad', description='High-absorbency pad with leak-lock sides. Ideal for medium to heavy flow days.', price=15.0, type='Super', features='Leak-Lock Sides,12hr Protection,Extra Coverage,Odor Control'),
-        Product(name='Overnight Pad', description='Extra-long, maximum protection pad for overnight use or heavy flow days.', price=20.0, type='Overnight', features='Extra Long,Maximum Absorbency,Contoured Shape,All Night Comfort'),
-        Product(name='Ultra Thin', description='Discreet, ultra-thin pad with technology that feels like you\'re wearing nothing.', price=12.0, type='Ultra Thin', features='Ultra Thin,Invisible Comfort,Flexible Wings,Secure Fit'),
-        Product(name='Organic Pad', description='Made with 100% certified organic cotton. Chemical-free, gentle, and eco-friendly.', price=25.0, type='Organic', features='100% Organic,Chemical-Free,Eco-Friendly,Biodegradable'),
+        # Whisper
+        Product(brand='Whisper', name='XL Dry', tagline='Gentle everyday protection', color_accent='#E91E8C', descriptor='Extra length, heavy flow', price=45.0, type='XL', description='Trusted protection since 1983'),
+        Product(brand='Whisper', name='XXL Overnight', tagline='Gentle everyday protection', color_accent='#E91E8C', descriptor='Full night protection', price=55.0, type='XXL', description='Maximum coverage for peaceful sleep'),
+        Product(brand='Whisper', name='Ultra Thin', tagline='Gentle everyday protection', color_accent='#E91E8C', descriptor='Invisible comfort', price=50.0, type='Ultra', description='Discreet and highly absorbent'),
+        Product(brand='Whisper', name='With Wings', tagline='Gentle everyday protection', color_accent='#E91E8C', descriptor='Secure fit, active days', price=48.0, type='Wings', description='Reliable stay-in-place design'),
+        
+        # Nua
+        Product(brand='Nua', name='Regular', tagline='Made for real bodies', color_accent='#9C27B0', descriptor='Everyday softness', price=40.0, type='Regular', description='Chemical-free and breathable'),
+        Product(brand='Nua', name='Overnight', tagline='Made for real bodies', color_accent='#9C27B0', descriptor='Long coverage, 8h+', price=58.0, type='Overnight', description='Wider back for total security'),
+        
+        # Stayfree
+        Product(brand='Stayfree', name='XL Wings', tagline='Stay confident, stay free', color_accent='#F06292', descriptor='Secure, high flow', price=42.0, type='XL', description='Cottony soft cover for comfort'),
+        Product(brand='Stayfree', name='Secure Nights', tagline='Stay confident, stay free', color_accent='#F06292', descriptor='Anti-leak overnight', price=52.0, type='Overnight', description='Designed for heavy night flow'),
     ]
     for p in products:
         db.session.add(p)
@@ -615,8 +745,24 @@ def seed_database():
         base = stock_levels[i]
         for product in products:
             qty = max(0, base + random.randint(-2, 2))
-            inv = Inventory(machine_id=machine.id, product_id=product.id, quantity=qty)
+            # Set some sponsored stock for testing (10% of regular stock or random 0-2)
+            spon_qty = random.randint(0, 3) if qty > 0 else 0
+            inv = Inventory(
+                machine_id=machine.id, 
+                product_id=product.id, 
+                quantity=qty,
+                sponsored_quantity=spon_qty
+            )
             db.session.add(inv)
+            
+            # Seed global pool for some products
+            if random.random() > 0.7:
+                pool = GlobalSponsoredPool.query.filter_by(product_id=product.id).first()
+                if pool:
+                    pool.count += random.randint(1, 5)
+                else:
+                    pool = GlobalSponsoredPool(product_id=product.id, count=random.randint(1, 5))
+                    db.session.add(pool)
 
     # Sample transactions
     import random as rnd

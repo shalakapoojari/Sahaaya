@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { LanguageProvider } from "@/context/language-context";
 
 export const metadata: Metadata = {
   title: "Sahayaa – Care, delivered naturally.",
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col selection:bg-magenta selection:text-white">
         <div className="grain-overlay" aria-hidden="true" />
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

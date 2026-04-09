@@ -3,50 +3,44 @@
 @import "tailwindcss";
 
 :root {
-  /* Soft Botanical Palette */
-  --sage-light: #F8FAF9;
-  --sage-medium: #E1E8E4;
-  --forest-soft: #2D4A3E;
-  --leaf-green: #86A397;
-  --blossom-pink: #F2D5D5;
-  --earth-tan: #D9CFC1;
-  
-  --magenta: #D47A9A; /* Softened magenta */
-  --teal: #5FB4A2;    /* Softened teal */
-  --gold: #D4AF37;    /* Earthy gold */
-  --coral: #E68A8A;   /* Softened coral */
-  
-  --text-primary: #2D4A3E;
-  --text-muted: rgba(45, 74, 62, 0.6);
-  --glass: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.8);
+  /* SHAY Pink-Purple Palette */
+  --sh-primary: #1b0a14;
+  --sh-secondary: #a875b1;
+  --sh-accent: #f19bb8;
+  --sh-surface: #FFF8FC;
+  --sh-card: #FFFFFF;
+  --sh-text-primary: #2D1B3D;
+  --sh-text-secondary: #7B5D8C;
+  --sh-muted-border: rgba(233, 30, 140, 0.15);
+  --sh-error: #E53935;
+  --sh-success: #388E3C;
+
+  --sh-gradient: linear-gradient(135deg, var(--sh-primary) 0%, var(--sh-secondary) 100%);
+  --sh-glass: rgba(255, 255, 255, 0.7);
+  --sh-glass-border: rgba(233, 30, 140, 0.1);
 
   --font-serif: 'Playfair Display', serif;
   --font-sans: 'DM Sans', sans-serif;
 }
 
 @theme inline {
-  --color-sage-light: var(--sage-light);
-  --color-sage-medium: var(--sage-medium);
-  --color-forest: var(--forest-soft);
-  --color-leaf: var(--leaf-green);
-  --color-blossom: var(--blossom-pink);
-  --color-earth: var(--earth-tan);
-  
-  --color-magenta: var(--magenta);
-  --color-teal: var(--teal);
-  --color-gold: var(--gold);
-  --color-coral: var(--coral);
-  --color-text-primary: var(--text-primary);
-  --color-text-muted: var(--text-muted);
-  
+  --color-primary: var(--sh-primary);
+  --color-secondary: var(--sh-secondary);
+  --color-accent: var(--sh-accent);
+  --color-surface: var(--sh-surface);
+  --color-card: var(--sh-card);
+  --color-text-sh-primary: var(--sh-text-primary);
+  --color-text-sh-secondary: var(--sh-text-secondary);
+  --color-error: var(--sh-error);
+  --color-success: var(--sh-success);
+
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
 }
 
 body {
-  background: linear-gradient(135deg, var(--sage-light) 0%, var(--sage-medium) 100%);
-  color: var(--text-primary);
+  background: var(--sh-surface);
+  color: var(--sh-text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
   margin: 0;
@@ -54,71 +48,118 @@ body {
   overflow-x: hidden;
 }
 
-/* Glassmorphism Redefined (Soft & Natural) */
+/* Glassmorphism Redefined for SHAY */
 .glass {
-  background: var(--glass);
+  background: var(--sh-glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px rgba(45, 74, 62, 0.05);
-  border-radius: 24px;
+  border: 1px solid var(--sh-glass-border);
+  box-shadow: 0 8px 32px rgba(156, 39, 176, 0.05);
 }
 
-/* Pulse Animations (Softened) */
-@keyframes pulse-teal {
-  0% { box-shadow: 0 0 0 0 rgba(95, 180, 162, 0.2); }
-  70% { box-shadow: 0 0 0 15px rgba(95, 180, 162, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(95, 180, 162, 0); }
+/* Fanned / Stacked Cards Utility */
+.fanned-card {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 20px;
 }
 
-@keyframes pulse-gold {
-  0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.2); }
-  70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+.fanned-card:nth-child(even) {
+  transform: rotate(2deg);
 }
 
-@keyframes pulse-coral {
-  0% { box-shadow: 0 0 0 0 rgba(230, 138, 138, 0.2); }
-  70% { box-shadow: 0 0 0 15px rgba(230, 138, 138, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(230, 138, 138, 0); }
+.fanned-card:nth-child(odd) {
+  transform: rotate(-2deg);
 }
 
-.glow-teal { animation: pulse-teal 3s infinite; background-color: var(--teal); }
-.glow-gold { animation: pulse-gold 3s infinite; background-color: var(--gold); }
-.glow-coral { animation: pulse-coral 3s infinite; background-color: var(--coral); }
-
-/* Custom Text Gradients (Sahayaa) */
-.text-gradient-sahayaa {
-  background: linear-gradient(to right, var(--forest-soft), var(--leaf-green));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.fanned-card:hover {
+  transform: translateY(-8px) scale(1.02) rotate(0deg) !important;
+  box-shadow: 0 20px 40px rgba(233, 30, 140, 0.1);
+  z-index: 10;
 }
 
-/* Botanical Organic Shapes */
-.organic-shape-1 {
-  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-  background: var(--leaf-green);
-  opacity: 0.1;
+/* SHAY Buttons */
+.btn-primary {
+  background: var(--sh-gradient);
+  color: white;
+  border-radius: 12px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(233, 30, 140, 0.2);
 }
 
-/* Botanical Floating Animation */
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-15px) rotate(3deg); }
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(233, 30, 140, 0.3);
 }
 
-.animate-botanical {
-  animation: float 10s ease-in-out infinite;
+.btn-primary:active {
+  transform: translateY(0);
 }
 
-/* Grainy Texture (Subtle) */
-.grain-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.03;
-  mix-blend-mode: multiply;
+.btn-ghost {
+  background: transparent;
+  color: var(--sh-primary);
+  border: 1px solid var(--sh-muted-border);
+  border-radius: 12px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(233, 30, 140, 0.05);
+  border-color: var(--sh-primary);
+}
+
+/* Animations */
+@keyframes heartPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heart {
+  animation: heartPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sh-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sh-muted-border);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sh-accent);
 }

@@ -88,50 +88,50 @@ const Hero = () => {
 
           <div className="flex items-center gap-10 pt-10 border-t border-gold/10 w-full lg:w-auto">
             <div className="text-left space-y-1">
-               <div className="text-slate font-black text-2xl tracking-tighter">50+</div>
-               <div className="text-slate-light text-[10px] font-black uppercase tracking-widest">Active Pods</div>
+              <div className="text-slate font-black text-2xl tracking-tighter">50+</div>
+              <div className="text-slate-light text-[10px] font-black uppercase tracking-widest">Active Pods</div>
             </div>
             <div className="h-10 w-[1px] bg-gold/20" />
             <div className="text-left space-y-1">
-               <div className="text-slate font-black text-2xl tracking-tighter">12k+</div>
-               <div className="text-slate-light text-[10px] font-black uppercase tracking-widest">Women Helped</div>
+              <div className="text-slate font-black text-2xl tracking-tighter">12k+</div>
+              <div className="text-slate-light text-[10px] font-black uppercase tracking-widest">Women Helped</div>
             </div>
           </div>
         </motion.div>
 
         {/* Right: Visual Ethereal Pod */}
         <motion.div
-           initial={{ scale: 0.9, opacity: 0 }}
-           animate={{ scale: 1, opacity: 1 }}
-           transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-           className="relative aspect-square flex items-center justify-center"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="relative aspect-square flex items-center justify-center"
         >
           {/* Main Container */}
           <div className="relative w-full h-full flex items-center justify-center">
             {/* Ethereal Pod Visual */}
             <div className="relative w-[340px] h-[480px] bg-white/60 backdrop-blur-3xl rounded-[4rem] shadow-[0_32px_80px_rgba(212,175,55,0.08)] flex items-center justify-center border border-white/40 overflow-hidden group">
-               {/* Animated Inner Glow */}
-               <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-transparent to-rose-quartz/5" />
-               
-               {/* Stylized Bloom */}
-               <div className="relative z-10 flex flex-col items-center gap-10">
-                  <div className="w-32 h-32 rounded-full glass bg-white/80 border-gold/10 flex items-center justify-center text-6xl shadow-xl transition-transform group-hover:scale-110 duration-700">
-                     🌸
-                  </div>
-                  <div className="space-y-4 text-center">
-                     <div className="h-1 w-32 bg-slate/5 rounded-full overflow-hidden mx-auto">
-                        <motion.div 
-                          animate={{ x: [-128, 128] }}
-                          transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-                          className="h-full w-20 bg-gold/40 rounded-full"
-                        />
-                     </div>
-                     <div className="text-[10px] font-black text-slate-light uppercase tracking-[0.4em]">Sahayaa Premium</div>
-                  </div>
-               </div>
+              {/* Animated Inner Glow */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-transparent to-rose-quartz/5" />
 
-               {/* Reflection */}
-               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none" />
+              {/* Stylized Bloom */}
+              <div className="relative z-10 flex flex-col items-center gap-10">
+                <div className="w-32 h-32 rounded-full glass bg-white/80 border-gold/10 flex items-center justify-center text-6xl shadow-xl transition-transform group-hover:scale-110 duration-700">
+                  🌸
+                </div>
+                <div className="space-y-4 text-center">
+                  <div className="h-1 w-32 bg-slate/5 rounded-full overflow-hidden mx-auto">
+                    <motion.div
+                      animate={{ x: [-128, 128] }}
+                      transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
+                      className="h-full w-20 bg-gold/40 rounded-full"
+                    />
+                  </div>
+                  <div className="text-[10px] font-black text-slate-light uppercase tracking-[0.4em]">Sahayaa Premium</div>
+                </div>
+              </div>
+
+              {/* Reflection */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none" />
             </div>
 
             {/* Glowing Halos */}
@@ -141,14 +141,14 @@ const Hero = () => {
             </div>
 
             {/* Floating Icons */}
-            <motion.div 
+            <motion.div
               animate={{ y: [0, -15, 0], rotate: [0, 5, 0] }}
               transition={{ repeat: Infinity, duration: 5 }}
               className="absolute -top-12 -right-8 w-24 h-24 glass flex items-center justify-center text-4xl shadow-xl border-gold/10"
             >
               🌿
             </motion.div>
-            <motion.div 
+            <motion.div
               animate={{ y: [0, 15, 0], rotate: [0, -5, 0] }}
               transition={{ repeat: Infinity, duration: 6, delay: 1 }}
               className="absolute -bottom-10 -left-6 w-20 h-20 glass flex items-center justify-center text-3xl shadow-xl border-gold/10"
