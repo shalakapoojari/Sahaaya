@@ -326,7 +326,6 @@ def dispense_product():
     product_id = int(data.get('product_id'))
     quantity = int(data.get('quantity', 1))
     lat = data.get('lat')
-    lat = data.get('lat')
     lng = data.get('lng')
     machine_id = data.get('machine_id')
     
