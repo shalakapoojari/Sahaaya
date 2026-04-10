@@ -43,12 +43,22 @@ interface Pod {
 }
 
 interface Transaction {
-  id: string;
-  podId: string;
-  podName: string;
-  product: ProductType;
-  status: 'success' | 'failed';
-  timestamp: number;
+  id: number | string;
+  transaction_id?: string;
+  session_id?: string;
+  machine_id?: number | string;
+  machine_name?: string;
+  podId?: string; // fallback
+  podName?: string; // fallback
+  product_id?: number;
+  product_name?: string;
+  product?: ProductType; // fallback
+  amount?: number;
+  quantity?: number;
+  type?: string;
+  payment_method?: string;
+  status: string;
+  timestamp: number | string;
   reason?: string;
 }
 
@@ -1441,7 +1451,7 @@ export default function SHAYApp() {
   const statsSummary = useMemo(() => {
     return {
       activePods: state.pods.filter(p => p.status === 'active').length,
-      dispensedToday: state.transactions.filter(t => t.timestamp > Date.now() - 86400000 && t.status === 'success').length
+      dispensedToday: state.transactions.filter(t => new Date(t.timestamp).getTime() > Date.now() - 86400000 && (t.status === 'success' || t.status === 'completed')).length
     };
   }, [state.transactions, state.pods]);
 

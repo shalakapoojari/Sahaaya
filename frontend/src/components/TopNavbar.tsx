@@ -33,7 +33,6 @@ const TopNavbar = ({ activePage, onNavigate, isLoggedIn }: TopNavbarProps) => {
     { name: t('navigation.home') || "Home", id: "home" },
     { name: t('navigation.findAPod') || "Find a Pod", id: "find" },
     { name: t('navigation.pharmacy') || "Find Pharmacy", id: "pharmacy" },
-    { name: t('navigation.livecare') || "Live Care", id: "livecare" },
     { name: t('navigation.subscriptions') || "Subscriptions", id: "subscription" },
     { name: t('navigation.about') || "About", id: "about" },
     { name: t('navigation.dashboard') || "Admin", id: "admin" },
@@ -54,13 +53,13 @@ const TopNavbar = ({ activePage, onNavigate, isLoggedIn }: TopNavbarProps) => {
       <div
         className={cn(
           "max-w-7xl mx-auto flex items-center justify-between px-8 py-3 transition-all duration-500 rounded-2xl border",
-          scrolled 
-            ? "glass shadow-xl border-sage-medium/50 bg-white/80" 
+          scrolled
+            ? "glass shadow-xl border-sage-medium/50 bg-white/80"
             : "bg-transparent border-transparent"
         )}
       >
         {/* Logo */}
-        <button 
+        <button
           onClick={() => onNavigate('home')}
           className="flex items-center gap-3 group"
         >
@@ -100,13 +99,13 @@ const TopNavbar = ({ activePage, onNavigate, isLoggedIn }: TopNavbarProps) => {
         <div className="hidden md:flex items-center gap-4">
           {!isLoggedIn ? (
             <>
-              <button 
+              <button
                 onClick={() => onNavigate('admin')} // Mock redirection to login
                 className="text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-forest transition-colors flex items-center gap-2"
               >
                 <LogIn className="w-4 h-4" /> Login
               </button>
-              <button 
+              <button
                 onClick={() => onNavigate('admin')} // Mock sign up
                 className="px-6 py-3 rounded-full bg-forest text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg"
               >
@@ -114,7 +113,7 @@ const TopNavbar = ({ activePage, onNavigate, isLoggedIn }: TopNavbarProps) => {
               </button>
             </>
           ) : (
-            <button 
+            <button
               onClick={() => onNavigate('home')} // Logout mock logic would go here
               className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-forest/20 text-forest font-black text-[10px] uppercase tracking-widest hover:bg-forest hover:text-white transition-all"
             >
@@ -124,8 +123,8 @@ const TopNavbar = ({ activePage, onNavigate, isLoggedIn }: TopNavbarProps) => {
         </div>
 
         {/* Mobile Toggle */}
-        <button 
-          className="md:hidden p-2 text-forest" 
+        <button
+          className="md:hidden p-2 text-forest"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -155,12 +154,12 @@ const TopNavbar = ({ activePage, onNavigate, isLoggedIn }: TopNavbarProps) => {
             ))}
             <div className="h-[1px] bg-sage-medium my-2" />
             <div className="flex flex-col gap-4">
-               <button className="text-sm font-black text-forest uppercase tracking-widest text-left flex items-center gap-2">
-                 <LogIn className="w-4 h-4" /> Login
-               </button>
-               <button className="w-full py-4 rounded-full bg-forest text-white font-black text-[10px] uppercase tracking-widest shadow-lg">
-                 Sign Up
-               </button>
+              <button className="text-sm font-black text-forest uppercase tracking-widest text-left flex items-center gap-2">
+                <LogIn className="w-4 h-4" /> Login
+              </button>
+              <button className="w-full py-4 rounded-full bg-forest text-white font-black text-[10px] uppercase tracking-widest shadow-lg">
+                Sign Up
+              </button>
             </div>
           </motion.div>
         )}
