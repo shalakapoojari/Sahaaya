@@ -395,19 +395,29 @@ def reverse_geocode(lat, lng):
 
 
 def find_nearest_machine_with_stock(lat, lng, product_id=None, qty=1):
-    """Return (machine, distance_km) with available regular or sponsored stock."""
+    MAX_DISTANCE_KM = 5   # 🔥 adjust (3–10 km depending on your use case)
+
     machines = Machine.query.filter_by(status='active').all()
     best, best_dist = None, float('inf')
+
     for m in machines:
         if not m.latitude or not m.longitude:
             continue
+
         dist = haversine_km(lat, lng, m.latitude, m.longitude)
+
+        if dist > MAX_DISTANCE_KM:
+            continue   # 🚫 ignore far machines
+
         inv = (Inventory.query.filter_by(machine_id=m.id, product_id=product_id).first()
                if product_id else None)
+
         has_stock = (inv and (inv.quantity >= qty or inv.sponsored_quantity >= qty)) \
                     if inv else (m.get_stock_status() != 'out_of_stock')
+
         if has_stock and dist < best_dist:
             best, best_dist = m, dist
+
     return best, best_dist
 
 

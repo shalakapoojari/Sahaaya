@@ -9,27 +9,50 @@ import { apiFetch } from "@/lib/api";
 const Hero = () => {
   const [nearestPod, setNearestPod] = useState<any>(null);
 
-  useEffect(() => {
-    fetchNearestPod();
-  }, []);
-
-  const fetchNearestPod = async () => {
+  const fallbackToEmergency = async () => {
     try {
       const res = await apiFetch("/api/machines/emergency");
       if (res.machine) {
-        setNearestPod(res.machine);
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${res.machine.latitude},${res.machine.longitude}`, '_blank');
+        return;
       }
     } catch (err) {
       console.error("Error fetching emergency pod:", err);
     }
+    window.location.href = "/machines";
   };
 
   const handleNeedPadNow = () => {
-    if (nearestPod && nearestPod.latitude && nearestPod.longitude) {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${nearestPod.latitude},${nearestPod.longitude}`, '_blank');
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const res = await apiFetch("/api/machines/nearest", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              })
+            });
+            if (res.machine) {
+              window.open(`https://www.google.com/maps/dir/?api=1&destination=${res.machine.latitude},${res.machine.longitude}`, '_blank');
+            } else {
+              fallbackToEmergency();
+            }
+          } catch (e) {
+            fallbackToEmergency();
+          }
+        },
+        () => {
+          fallbackToEmergency();
+        },
+        { timeout: 6000 }
+      );
     } else {
-      // Fallback to machines page if no pod found
-      window.location.href = "/machines";
+      fallbackToEmergency();
     }
   };
 
