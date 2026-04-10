@@ -27,10 +27,12 @@ const VenderPage = () => {
   const [selectedBrand, setSelectedBrand] = useState<any>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
+  const [selectedMode, setSelectedMode] = useState<'pay' | 'subscription' | 'community' | 'sponsor_request'>('pay');
   const [isSponsoring, setIsSponsoring] = useState(false);
   
   // UI State
   const [vendingStatus, setVendingStatus] = useState<'idle' | 'processing' | 'vending' | 'success'>('idle');
+  const [checkResult, setCheckResult] = useState<any>(null);
   const [filter, setFilter] = useState<'all' | 'instock' | 'wings' | 'overnight'>('all');
 
   useEffect(() => {
@@ -65,12 +67,20 @@ const VenderPage = () => {
 
   const fetchData = async () => {
     try {
-      const [mRes, bRes] = await Promise.all([
+      const sessionId = localStorage.getItem('sh_device_hash') || `anon_${Date.now()}`;
+      localStorage.setItem('sh_device_hash', sessionId);
+
+      const [mRes, bRes, cRes] = await Promise.all([
          apiFetch(`/api/machines/${id}`),
-         apiFetch(`/api/products/brands`)
+         apiFetch(`/api/products/brands`),
+         apiFetch(`/api/dispense/check`, {
+            method: 'POST',
+            body: JSON.stringify({ session_id: sessionId })
+         })
       ]);
       setMachine(mRes);
       setBrands(bRes);
+      setCheckResult(cRes);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -103,10 +113,11 @@ const VenderPage = () => {
       const res = await apiFetch(`/api/dispense`, {
         method: "POST",
         body: JSON.stringify({ 
-          session_id: localStorage.getItem('sh_device_hash') || `anon_${Date.now()}`,
+          session_id: localStorage.getItem('sh_device_hash'),
           product_id: selectedProduct.product_id,
           quantity: quantity,
           machine_id: machine.id,
+          mode: selectedMode,
           lat: machine?.latitude || machine?.lat || 19.0,
           lng: machine?.longitude || machine?.lon || 72.8
         })
@@ -137,51 +148,8 @@ const VenderPage = () => {
 
   const totalAmount = (selectedProduct?.product_price || 0) * quantity + (isSponsoring ? 45 : 0);
 
-  const handleProceedToCheckout = async () => {
-    // 1. Check if out of stock
-    if (selectedProduct && selectedProduct.quantity === 0) {
-      alert(t('common.unavailable') || "This product is out of stock. Initiating a Live Care Network request...");
-      try {
-        await apiFetch(`/api/livecare/signal`, {
-          method: "POST",
-          body: JSON.stringify({
-            session_id: localStorage.getItem('sh_device_hash') || `anon_${Date.now()}`,
-            area: machine?.area || machine?.location || "Nearby",
-            brand: selectedBrand.name,
-            product_type: selectedProduct.product_name,
-            product_id: selectedProduct.product_id,
-            qty: quantity,
-            lat: machine?.latitude || machine?.lat || 19.0,
-            lng: machine?.longitude || machine?.lon || 72.8
-          })
-        });
-      } catch (e) {
-        console.error("Failed to post need signal", e);
-      }
-      window.location.href = "/";
-      return;
-    }
-
-    // 2. Check claim limit for FREE dispenses or regular? 
-    // Wait, the prompt says limit is 1/day for *dispensing*, we will check the server.
-    const sessionId = localStorage.getItem('sh_device_hash') || `anon_${Date.now()}`;
-    localStorage.setItem('sh_device_hash', sessionId);
-    
-    try {
-      const res = await apiFetch(`/api/dispense/check`, {
-        method: "POST",
-        body: JSON.stringify({ session_id: sessionId })
-      });
-      if (!res.can_claim) {
-        alert(t('dispense.limit_reached') || "You've already claimed this today. Come back tomorrow.");
-        window.location.href = "/";
-        return;
-      }
-    } catch (e) {
-      console.error("Could not check claim limit", e);
-    }
-    
-    setStep(4);
+  const handleProceedToModeSelection = async () => {
+    setStep(3);
   };
 
   return (
@@ -267,7 +235,7 @@ const VenderPage = () => {
               </motion.div>
             )}
 
-            {/* STEP 2: SUBTYPE SELECTION */}
+            {/* STEP 2: PACK SELECTION */}
             {step === 2 && (
               <motion.div 
                 key="step2"
@@ -276,159 +244,213 @@ const VenderPage = () => {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-12"
               >
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-primary/5 pb-8">
-                  <div className="space-y-2">
-                    <h1 className="text-5xl font-serif font-black text-sh-primary tracking-tighter">
-                      {t('vending.selectSubtype').split(' ').slice(0, -1).join(' ')} <span className="italic text-secondary">{t('vending.selectSubtype').split(' ').pop()}</span>
-                    </h1>
-                    <p className="text-xs font-bold text-sh-secondary uppercase tracking-widest">{selectedBrand.name} {t('vending.brandVarieties')}</p>
-                  </div>
-                  
-                  <div className="flex gap-2 p-1 bg-primary/5 rounded-full">
-                    {(['all', 'instock', 'wings', 'overnight'] as const).map(f => (
-                      <button
-                        key={f} onClick={() => setFilter(f)}
-                        className={cn("px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                        filter === f ? 'bg-white shadow-sm text-primary' : 'text-sh-secondary hover:text-primary')}
-                      >
-                        {t(`common.${f}`) || f}
-                      </button>
-                    ))}
-                  </div>
+                <div className="text-center space-y-4">
+                  <h1 className="text-5xl md:text-7xl font-serif font-black text-sh-primary tracking-tighter">
+                    Select your <span className="italic text-secondary">Pack.</span>
+                  </h1>
+                  <p className="text-xs font-bold text-sh-secondary uppercase tracking-widest">{selectedBrand.name} Collection</p>
                 </div>
 
-                {suggestions && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="p-6 bg-secondary/5 border border-secondary/20 rounded-3xl flex items-center justify-between gap-6"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="text-2xl">💡</div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-sh-primary uppercase tracking-wider">{t('vending.smartSuggestion')}</p>
-                        <p className="text-sm text-sh-secondary font-medium">
-                          {t('vending.suggestionText', { name: <span className="font-black text-secondary">{suggestions.item.product_name}</span> })}
-                        </p>
-                      </div>
-                    </div>
-                    <button 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                  {subtypes.map((sub: any) => (
+                    <motion.div
+                      key={sub.product_id}
+                      whileHover={{ y: -10 }}
                       onClick={() => {
-                        const suggestedBrand = brands.find(b => suggestions.item.product_name.includes(b.name));
-                        if (suggestedBrand) setSelectedBrand(suggestedBrand);
-                        setSelectedProduct(suggestions.item);
-                        setStep(3);
+                        if (sub.quantity > 0) {
+                          setSelectedProduct(sub);
+                          setStep(3);
+                        }
                       }}
-                      className="btn-primary px-8 py-3 text-[10px] uppercase tracking-widest"
+                      className={cn(
+                        "bg-white p-10 rounded-[3rem] border transition-all cursor-pointer group relative overflow-hidden flex flex-col gap-6",
+                        sub.quantity === 0 ? "opacity-40 grayscale cursor-not-allowed" : "border-primary/10 hover:border-primary/30 shadow-xl"
+                      )}
                     >
-                      {t('vending.useSuggestion')}
-                    </button>
-                  </motion.div>
-                )}
-
-                {filteredSubtypes.length === 0 ? (
-                  <div className="p-20 glass text-center space-y-4">
-                    <div className="text-4xl">💛</div>
-                    <p className="text-sh-secondary font-bold uppercase text-[10px] tracking-widest">{t('vending.noMatching')}</p>
-                    <button onClick={() => setStep(1)} className="btn-ghost px-6 py-2">{t('vending.tryAnother')}</button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {filteredSubtypes.map((sub: any) => (
-                      <motion.div
-                        key={sub.product_id}
-                        whileHover={{ y: -5 }}
-                        onClick={() => {
-                          if (sub.quantity > 0) {
-                            setSelectedProduct(sub);
-                            setStep(3);
-                          }
-                        }}
-                        className={cn(
-                          "bg-white p-8 rounded-[2rem] border transition-all cursor-pointer group relative overflow-hidden",
-                          sub.quantity === 0 ? "opacity-40 grayscale cursor-not-allowed" : "border-primary/10 hover:border-primary/30 shadow-lg"
-                        )}
-                      >
-                        {sub.quantity > 0 && sub.quantity <= 3 && (
-                          <div className="absolute top-4 right-4 bg-error text-white text-[8px] font-black px-2 py-1 rounded-full uppercase z-10 animate-pulse">
-                            {sub.quantity === 1 ? t('vending.lastOne') : `${sub.quantity} ${t('vending.left')}`}
-                          </div>
-                        )}
-                        <div className="space-y-6">
-                          <div className="w-full aspect-[4/3] glass bg-primary/5 rounded-2xl flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
+                      <div className="absolute top-0 left-0 w-full h-2" style={{ backgroundColor: selectedBrand.color }} />
+                      
+                      <div className="space-y-4 flex-1">
+                        <div className="flex justify-between items-start">
+                          <div className="w-16 h-16 rounded-2xl glass bg-primary/5 flex items-center justify-center text-3xl">
                             {sub.product_name.toLowerCase().includes('night') ? '🌙' : '✨'}
                           </div>
-                          <div className="space-y-1">
-                            <h3 className="text-2xl font-serif font-black text-sh-primary">{sub.product_name.replace(selectedBrand.name, '').trim()}</h3>
-                            <p className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">₹{sub.product_price} {t('vending.perPack')}</p>
+                          <div className="text-right">
+                            <span className="text-[10px] font-black uppercase text-sh-secondary tracking-widest block">{sub.product_type} Variant</span>
+                            <span className="text-2xl font-black text-primary">₹{sub.product_price}</span>
                           </div>
-                          <button 
-                            disabled={sub.quantity === 0}
-                            className="w-full py-4 rounded-2xl bg-primary/5 text-primary font-black text-[10px] uppercase tracking-widest transition-all group-hover:bg-primary group-hover:text-white"
-                          >
-                            {sub.quantity === 0 ? t('common.unavailable') : t('common.select')}
-                          </button>
                         </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
+
+                        <div className="space-y-2">
+                           <h3 className="text-3xl font-serif font-black text-sh-primary leading-tight">{sub.product_name}</h3>
+                           <p className="text-sm text-sh-secondary font-medium leading-relaxed bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                              {sub.description || "Premium protection with advanced absorbent core for maximum comfort."}
+                           </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-primary/5">
+                        <div className="flex items-center gap-2">
+                           <Package className="w-4 h-4 text-sh-secondary" />
+                           <span className="text-[10px] font-black uppercase tracking-widest text-sh-secondary">
+                              {sub.quantity > 10 ? "High Stock" : sub.quantity > 0 ? "Limited Stock" : "Out of Stock"}
+                           </span>
+                        </div>
+                        <button 
+                          disabled={sub.quantity === 0}
+                          className="px-8 py-3 rounded-full bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 group-hover:scale-105 transition-all"
+                        >
+                          Select Pack
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
             )}
 
-            {/* STEP 3: QUANTITY */}
+            {/* STEP 3: DISPENSE MODE */}
             {step === 3 && (
               <motion.div 
                 key="step3"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="max-w-xl mx-auto w-full py-20 space-y-12 text-center"
+                className="max-w-4xl mx-auto w-full py-10 space-y-12"
               >
-                <div className="space-y-4">
+                <div className="text-center space-y-4">
                   <h1 className="text-5xl font-serif font-black text-sh-primary tracking-tighter">
-                    {t('vending.howManyPacks').split(' ').slice(0, -1).join(' ')} <span className="italic text-secondary">{t('vending.howManyPacks').split(' ').pop()}</span>
+                    How would you like to <span className="italic text-secondary">Dispense?</span>
                   </h1>
-                  <p className="text-xs font-bold text-sh-secondary uppercase tracking-widest">{t('vending.availableStock', { count: selectedProduct.quantity })}</p>
+                  <p className="text-xs font-bold text-sh-secondary uppercase tracking-widest">Select your preferred access method</p>
                 </div>
 
-                <div className="glass p-12 rounded-[3rem] border-primary/20 space-y-10">
-                   <div className="flex items-center justify-center gap-10">
-                      <button 
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="w-20 h-20 rounded-full glass border-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all shadow-lg"
-                      >
-                        <Minus className="w-8 h-8" />
-                      </button>
-                      
-                      <div className="text-8xl font-serif font-black text-sh-primary min-w-[120px]">
-                        {quantity}
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Mode: Pay */}
+                  <motion.div 
+                    onClick={() => setSelectedMode('pay')}
+                    className={cn(
+                      "p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer flex flex-col gap-6",
+                      selectedMode === 'pay' ? "border-primary bg-primary/5 shadow-xl" : "border-primary/5 bg-white hover:border-primary/20"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                       <div className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center text-2xl shadow-lg">💳</div>
+                       <div className="text-right">
+                          <span className="text-[10px] font-black uppercase text-sh-secondary tracking-widest block">Standard Access</span>
+                          <span className="text-xl font-black text-primary">Pay via UPI/Card</span>
+                       </div>
+                    </div>
+                    <div className="space-y-4">
+                       <p className="text-sm text-sh-secondary font-medium">Quick and secure digital payment for immediate relief.</p>
+                       {selectedMode === 'pay' && (
+                         <div className="flex items-center gap-6 p-4 bg-white rounded-2xl border border-primary/10">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-sh-secondary">Quantity:</span>
+                            <div className="flex items-center gap-4">
+                               <button onClick={(e) => { e.stopPropagation(); setQuantity(Math.max(1, quantity - 1)); }} className="w-8 h-8 rounded-full border border-primary/10 flex items-center justify-center text-primary"><Minus className="w-4 h-4" /></button>
+                               <span className="text-xl font-black text-sh-primary w-6 text-center">{quantity}</span>
+                               <button onClick={(e) => { e.stopPropagation(); setQuantity(Math.min(selectedProduct.quantity, quantity + 1)); }} className="w-8 h-8 rounded-full border border-primary/10 flex items-center justify-center text-primary"><Plus className="w-4 h-4" /></button>
+                            </div>
+                            <div className="ml-auto text-lg font-black text-primary">₹{selectedProduct.product_price * quantity}</div>
+                         </div>
+                       )}
+                    </div>
+                  </motion.div>
 
-                      <button 
-                        onClick={() => setQuantity(Math.min(selectedProduct.quantity, quantity + 1))}
-                        className="w-20 h-20 rounded-full glass border-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all shadow-lg"
-                      >
-                        <Plus className="w-8 h-8" />
-                      </button>
-                   </div>
+                  {/* Mode: Subscription */}
+                  <motion.div 
+                    onClick={() => checkResult?.subscription_valid && setSelectedMode('subscription')}
+                    className={cn(
+                      "p-8 rounded-[2.5rem] border-2 transition-all flex flex-col gap-6",
+                      !checkResult?.subscription_valid ? "opacity-50 grayscale cursor-not-allowed bg-slate-50" : (selectedMode === 'subscription' ? "border-secondary bg-secondary/5 shadow-xl cursor-pointer" : "border-primary/5 bg-white hover:border-secondary/20 cursor-pointer")
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                       <div className="w-14 h-14 rounded-2xl bg-secondary text-white flex items-center justify-center text-2xl shadow-lg">⭐</div>
+                       <div className="text-right">
+                          <span className="text-[10px] font-black uppercase text-sh-secondary tracking-widest block">Premium Access</span>
+                          <span className="text-xl font-black text-secondary">Subscription</span>
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <p className="text-sm text-sh-secondary font-medium">Use your active {checkResult?.subscription?.plan_name} plan.</p>
+                       {checkResult?.subscription_valid ? (
+                         <div className="px-4 py-2 bg-secondary/10 rounded-full inline-block">
+                           <span className="text-[10px] font-black uppercase tracking-widest text-secondary">{checkResult?.subscription?.pads_remaining} Pads Remaining</span>
+                         </div>
+                       ) : (
+                         <p className="text-[10px] font-black uppercase text-error tracking-widest">No active plan found</p>
+                       )}
+                    </div>
+                  </motion.div>
 
-                   <div className="pt-6 border-t border-primary/5">
-                      <div className="text-4xl font-black text-primary">₹{selectedProduct.product_price * quantity}</div>
-                      <p className="text-[10px] font-black text-sh-secondary uppercase tracking-widest mt-2">{quantity} × ₹{selectedProduct.product_price}</p>
-                   </div>
+                  {/* Mode: Donated Pad (Community) */}
+                  <motion.div 
+                    onClick={() => checkResult?.donated_pads_available && setSelectedMode('community')}
+                    className={cn(
+                      "p-8 rounded-[2.5rem] border-2 transition-all flex flex-col gap-6",
+                      !checkResult?.donated_pads_available ? "opacity-50 grayscale cursor-not-allowed bg-slate-50" : (selectedMode === 'community' ? "border-accent bg-accent/5 shadow-xl cursor-pointer" : "border-primary/5 bg-white hover:border-accent/20 cursor-pointer")
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                       <div className="w-14 h-14 rounded-2xl bg-accent text-white flex items-center justify-center text-2xl shadow-lg">🎁</div>
+                       <div className="text-right">
+                          <span className="text-[10px] font-black uppercase text-sh-secondary tracking-widest block">Social Gift</span>
+                          <span className="text-xl font-black text-accent">Donated Pad</span>
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <p className="text-sm text-sh-secondary font-medium">Received a pad donated by the community.</p>
+                       {checkResult?.donated_pads_available ? (
+                          <div className="px-4 py-2 bg-accent/10 rounded-full inline-block">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-accent">Available in Pool</span>
+                          </div>
+                       ) : (
+                          <p className="text-[10px] font-black uppercase text-error tracking-widest">Pool current empty</p>
+                       )}
+                    </div>
+                  </motion.div>
+
+                  {/* Mode: Free Claim (Sponsor Request) */}
+                  <motion.div 
+                    onClick={() => checkResult?.can_claim && setSelectedMode('sponsor_request')}
+                    className={cn(
+                      "p-8 rounded-[2.5rem] border-2 transition-all flex flex-col gap-6",
+                      !checkResult?.can_claim ? "opacity-50 grayscale cursor-not-allowed bg-slate-50" : (selectedMode === 'sponsor_request' ? "border-coral bg-coral/5 shadow-xl cursor-pointer" : "border-primary/5 bg-white hover:border-coral/20 cursor-pointer")
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                       <div className="w-14 h-14 rounded-2xl bg-coral text-white flex items-center justify-center text-2xl shadow-lg">🤝</div>
+                       <div className="text-right">
+                          <span className="text-[10px] font-black uppercase text-sh-secondary tracking-widest block">Emergency Aid</span>
+                          <span className="text-xl font-black text-coral">Free Claim</span>
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <p className="text-sm text-sh-secondary font-medium">Claim 1 free pad daily provided by sponsors.</p>
+                       {!checkResult?.can_claim && (
+                          <div className="px-4 py-2 bg-coral/10 rounded-full inline-block">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-coral">Claimed Today</span>
+                          </div>
+                       )}
+                    </div>
+                  </motion.div>
                 </div>
 
-                <button 
-                  onClick={handleProceedToCheckout}
-                  className="w-full btn-primary py-6 text-xs uppercase tracking-widest flex items-center justify-center gap-3"
-                >
-                  {t('common.proceed')} <ChevronRight className="w-5 h-5" />
-                </button>
+                <div className="flex flex-col gap-4">
+                  <button 
+                    onClick={() => setStep(4)}
+                    className="w-full btn-primary py-6 text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl"
+                  >
+                    Confirm selection <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => setStep(2)} className="text-[10px] font-black uppercase text-sh-secondary hover:text-primary transition-colors py-2">
+                    ← Change Pack
+                  </button>
+                </div>
               </motion.div>
             )}
 
-            {/* STEP 4: CHECKOUT */}
+            {/* STEP 4: SUMMARY & DISPENSE */}
             {step === 4 && (
               <motion.div 
                 key="step4"
@@ -438,8 +460,8 @@ const VenderPage = () => {
                 className="max-w-xl mx-auto w-full space-y-8"
               >
                 <div className="text-center space-y-2">
-                  <h1 className="text-5xl font-serif font-black text-sh-primary tracking-tighter italic">{t('vending.checkout')}</h1>
-                  <p className="text-xs font-bold text-sh-secondary uppercase tracking-widest">{t('vending.reviewSession')}</p>
+                  <h1 className="text-5xl font-serif font-black text-sh-primary tracking-tighter italic">Final Review</h1>
+                  <p className="text-xs font-bold text-sh-secondary uppercase tracking-widest">Ready to dispense your care</p>
                 </div>
 
                 <div className="bg-white p-10 rounded-[3rem] border border-primary/10 shadow-2xl space-y-8 relative overflow-hidden">
@@ -447,62 +469,72 @@ const VenderPage = () => {
                    
                    <div className="space-y-6 relative z-10">
                       <div className="flex justify-between items-center pb-4 border-b border-primary/5">
-                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">{t('vending.brand')}</span>
+                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">Brand</span>
                         <span className="text-lg font-serif font-black text-sh-primary">{selectedBrand.name}</span>
                       </div>
                       <div className="flex justify-between items-center pb-4 border-b border-primary/5">
-                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">{t('vending.subtype')}</span>
-                        <span className="text-sm font-bold text-sh-primary">{selectedProduct.product_name.replace(selectedBrand.name, '')}</span>
+                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">Pack</span>
+                        <span className="text-sm font-bold text-sh-primary">{selectedProduct.product_name}</span>
                       </div>
                       <div className="flex justify-between items-center pb-4 border-b border-primary/5">
-                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">{t('vending.quantity')}</span>
-                        <span className="text-sm font-bold text-sh-primary">{quantity} {t('vending.packs')}</span>
+                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">Method</span>
+                        <span className="text-sm font-black text-secondary tracking-widest uppercase">
+                          {selectedMode === 'pay' ? 'Direct Payment' : 
+                           selectedMode === 'subscription' ? 'Plan Allocation' : 
+                           selectedMode === 'community' ? 'Community Gift' : 'Free Help'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pb-4 border-b border-primary/5">
+                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">Quantity</span>
+                        <span className="text-sm font-bold text-sh-primary">{quantity} Pack(s)</span>
                       </div>
                    </div>
 
-                   {/* Sponsor Toggle */}
-                   <div className={cn(
-                     "p-6 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4",
-                     isSponsoring ? "border-primary bg-primary/5" : "border-primary/10 bg-surface"
+                   {/* Optional Sponsorship for Paid dispensed */}
+                   {selectedMode === 'pay' && (
+                     <div className={cn(
+                       "p-6 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4",
+                       isSponsoring ? "border-primary bg-primary/5" : "border-primary/10 bg-surface"
+                     )}
+                     onClick={() => setIsSponsoring(!isSponsoring)}
+                     >
+                       <div className="flex items-center gap-4">
+                          <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-all", 
+                          isSponsoring ? "bg-primary text-white shadow-lg" : "bg-white text-primary border border-primary/10")}>
+                            ❤️
+                          </div>
+                          <div className="text-left">
+                             <h4 className="text-xs font-black text-sh-primary uppercase tracking-wider">Sponsor 1 Pad</h4>
+                             <p className="text-[10px] text-sh-secondary font-medium">Add ₹45 to help someone else.</p>
+                          </div>
+                       </div>
+                       <div className={cn("w-12 h-6 rounded-full relative transition-all bg-primary/20", isSponsoring ? "bg-primary" : "bg-primary/20")}>
+                          <motion.div 
+                            className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm"
+                            animate={{ x: isSponsoring ? 24 : 0 }}
+                          />
+                       </div>
+                     </div>
                    )}
-                   onClick={() => setIsSponsoring(!isSponsoring)}
-                   >
-                     <div className="flex items-center gap-4">
-                        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-all", 
-                        isSponsoring ? "bg-primary text-white shadow-lg animate-heart" : "bg-white text-primary border border-primary/10")}>
-                          ❤️
-                        </div>
-                        <div className="text-left">
-                           <h4 className="text-xs font-black text-sh-primary uppercase tracking-wider">{t('vending.sponsorAPad')}</h4>
-                           <p className="text-[10px] text-sh-secondary font-medium">{t('vending.sponsorHelp')}</p>
-                        </div>
-                     </div>
-                     <div className={cn("w-12 h-6 rounded-full relative transition-all bg-primary/20", isSponsoring ? "bg-primary" : "bg-primary/20")}>
-                        <motion.div 
-                          className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm"
-                          animate={{ x: isSponsoring ? 24 : 0 }}
-                        />
-                     </div>
-                   </div>
 
                    <div className="pt-6 flex justify-between items-end">
                       <div className="space-y-1">
-                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">{t('vending.totalPayable')}</span>
-                        <h2 className="text-5xl font-black text-primary italic">₹{totalAmount}</h2>
+                        <span className="text-[10px] font-black text-sh-secondary uppercase tracking-widest">Total Payable</span>
+                        <h2 className="text-5xl font-black text-primary italic">₹{selectedMode === 'pay' ? (selectedProduct.product_price * quantity + (isSponsoring ? 45 : 0)) : 0}</h2>
                       </div>
-                      {isSponsoring && <div className="text-[10px] font-black text-secondary uppercase animate-pulse">{t('vending.communityGiftIncluded')}</div>}
+                      <div className="text-[10px] font-black text-secondary uppercase italic">Secure Handover</div>
                    </div>
                 </div>
 
                 <div className="space-y-4">
                   <button 
                     onClick={handleVend}
-                    className="w-full btn-primary py-8 text-xs uppercase tracking-widest flex items-center justify-center gap-4 relative overflow-hidden group"
+                    className="w-full btn-primary py-8 text-xs uppercase tracking-widest flex items-center justify-center gap-4 relative overflow-hidden group shadow-2xl"
                   >
-                    {t('vending.confirmAndVend')} <Zap className="w-5 h-5 fill-white" />
+                    Confirm & Dispense <Zap className="w-5 h-5 fill-white" />
                   </button>
-                  <button onClick={() => setStep(step - 1)} className="w-full text-[10px] font-black uppercase text-sh-secondary hover:text-primary transition-colors py-4">
-                    ← {t('vending.backToAdjustments')}
+                  <button onClick={() => setStep(3)} className="w-full text-[10px] font-black uppercase text-sh-secondary hover:text-primary transition-colors py-4">
+                    ← Back to selection
                   </button>
                 </div>
               </motion.div>

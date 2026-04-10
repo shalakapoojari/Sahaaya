@@ -48,15 +48,43 @@ const MachinesPage = () => {
             <p className="text-[10px] font-black text-slate/40 uppercase tracking-[0.4em]">Active Network Coverage • Mumbai</p>
           </div>
 
-          <div className="relative group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate/30 group-focus-within:text-gold transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Search by Station or Area..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-silk/50 border border-gold/10 rounded-full py-5 pl-14 pr-6 text-xs font-black uppercase tracking-widest text-slate outline-none focus:ring-4 focus:ring-gold/5 focus:border-gold/30 transition-all shadow-sm"
-            />
+          <div className="flex gap-2">
+            <div className="flex-1 relative group">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate/30 group-focus-within:text-gold transition-colors" />
+              <input 
+                type="text" 
+                placeholder="Search by Station or Area..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-silk/50 border border-gold/10 rounded-full py-5 pl-14 pr-6 text-xs font-black uppercase tracking-widest text-slate outline-none focus:ring-4 focus:ring-gold/5 focus:border-gold/30 transition-all shadow-sm"
+              />
+            </div>
+            <button 
+              onClick={() => {
+                if ("geolocation" in navigator) {
+                  navigator.geolocation.getCurrentPosition(async (position) => {
+                    try {
+                      const res = await apiFetch("/api/machines/nearest", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          lat: position.coords.latitude,
+                          lng: position.coords.longitude
+                        })
+                      });
+                      if (res.machine) {
+                        setSelectedMachine(res.machine);
+                      }
+                    } catch (e) {
+                      alert("Could not find nearest pod.");
+                    }
+                  });
+                }
+              }}
+              className="p-5 rounded-full bg-gold/5 border border-gold/10 text-gold hover:bg-gold hover:text-white transition-all shadow-sm"
+              title="Find Nearest"
+            >
+              <Navigation className="w-5 h-5" />
+            </button>
           </div>
         </div>
 

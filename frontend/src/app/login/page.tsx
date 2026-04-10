@@ -23,11 +23,13 @@ const LoginPage = () => {
     setError("");
     setLoading(true);
 
-    const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
     try {
-      const data = await apiFetch(endpoint, {
+      const data = await apiFetch("/api/auth/admin/login", {
         method: "POST",
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        }),
       });
 
       if (data.token) {
@@ -141,12 +143,9 @@ const LoginPage = () => {
         </form>
 
         <div className="text-center">
-           <button 
-             onClick={() => setIsLogin(!isLogin)}
-             className="text-[10px] font-black text-slate/40 uppercase tracking-widest hover:text-burgundy transition-all border-b border-transparent hover:border-burgundy/30 pb-0.5"
-           >
-              {isLogin ? "New to Sahayaa? Create Account" : "Already a member? Login"}
-           </button>
+           <p className="text-[10px] font-black text-slate/40 uppercase tracking-widest">
+              Restricted Access Bridge
+           </p>
         </div>
       </motion.div>
     </div>

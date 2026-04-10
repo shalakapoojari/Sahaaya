@@ -873,9 +873,9 @@ const PodDetailPage = ({ pod, onDispense, onBack }: { pod: Pod, onDispense: (typ
 const SubscriptionPage = ({ onSubscribe, user }: { onSubscribe: () => void, user: any }) => {
   const { t } = useLanguage();
   const plans = [
-    { name: 'Starter Care', price: '$5', units: 5, color: 'bg-blossom', desc: 'Perfect for light usage and backup.' },
-    { name: 'Monthly Essential', price: '$12', units: 15, color: 'bg-accent', desc: 'Our most popular plan for full monthly care.', popular: true },
-    { name: 'Annual Bloom', price: '$99', units: 'Unlimited', color: 'bg-earth', desc: 'Zero worries for the entire year.' }
+    { name: 'Starter Care', price: '₹199', units: 5, color: 'bg-blossom', desc: 'Perfect for light usage and backup.' },
+    { name: 'Monthly Essential', price: '₹499', units: 15, color: 'bg-accent', desc: 'Our most popular plan for full monthly care.', popular: true },
+    { name: 'Annual Bloom', price: '₹4999', units: 'Unlimited', color: 'bg-earth', desc: 'Zero worries for the entire year.' }
   ];
 
   return (
