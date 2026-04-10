@@ -872,11 +872,35 @@ const PodDetailPage = ({ pod, onDispense, onBack }: { pod: Pod, onDispense: (typ
 
 const SubscriptionPage = ({ onSubscribe, user }: { onSubscribe: () => void, user: any }) => {
   const { t } = useLanguage();
+  const [subData, setSubData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
   const plans = [
     { name: 'Starter Care', price: '₹199', units: 5, color: 'bg-blossom', desc: 'Perfect for light usage and backup.' },
     { name: 'Monthly Essential', price: '₹499', units: 15, color: 'bg-accent', desc: 'Our most popular plan for full monthly care.', popular: true },
     { name: 'Annual Bloom', price: '₹4999', units: 'Unlimited', color: 'bg-earth', desc: 'Zero worries for the entire year.' }
   ];
+
+  useEffect(() => {
+    const fetchSub = async () => {
+       try {
+          const sessionId = localStorage.getItem('sh_device_hash') || `anon_${Date.now()}`;
+          localStorage.setItem('sh_device_hash', sessionId);
+          const res = await apiFetch('/api/dispense/check', {
+             method: 'POST',
+             body: JSON.stringify({ session_id: sessionId })
+          });
+          if (res.subscription_valid) {
+             setSubData(res.subscription);
+          }
+       } catch (e) {
+          console.error("Failed to fetch sub", e);
+       } finally {
+          setLoading(false);
+       }
+    };
+    fetchSub();
+  }, []);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen py-32 px-6 max-w-6xl mx-auto space-y-16">
@@ -885,19 +909,19 @@ const SubscriptionPage = ({ onSubscribe, user }: { onSubscribe: () => void, user
         <p className="text-text-muted max-w-xl mx-auto font-medium">{t('subscription.tagline')}</p>
       </div>
 
-      {user && (
+      {subData && (
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="glass p-10 bg-primary/5 border-primary/10 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex items-center gap-6 text-center md:text-left">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-3xl">🌿</div>
             <div className="space-y-1">
-              <h2 className="text-2xl font-serif font-black text-primary">Your Current Plan: <span className="text-accent italic">Monthly Essential</span></h2>
-              <p className="text-xs text-text-muted font-bold uppercase tracking-widest">Next Billing Cycle: Oct 12, 2026</p>
+              <h2 className="text-2xl font-serif font-black text-primary">Your Current Plan: <span className="text-accent italic uppercase">{subData.plan_name}</span></h2>
+              <p className="text-xs text-text-muted font-bold uppercase tracking-widest">Active Session Protection • INR {subData.price_inr}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <div className="text-3xl font-black text-primary">12 / 15</div>
-              <div className="text-[10px] font-black uppercase text-text-muted tracking-widest">Units Remaining</div>
+              <div className="text-3xl font-black text-primary">{subData.pads_remaining} / {subData.pads_total}</div>
+              <div className="text-[10px] font-black uppercase text-text-muted tracking-widest">Pads Remaining</div>
             </div>
             <button className="px-8 py-4 rounded-full glass border-primary/10 text-primary font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all">Manage</button>
           </div>
@@ -973,10 +997,11 @@ const TransactionsPage = ({ txns }: { txns: Transaction[] }) => {
               className="glass p-6 flex flex-col sm:flex-row items-center justify-between gap-6 group hover:border-accent/20 shadow-sm"
             >
               <div className="flex items-center gap-6">
-                <div className="text-4xl group-hover:scale-110 transition-transform">{txn.product === 'regular' ? '🌿' : txn.product === 'overnight' ? '🌙' : '✨'}</div>
+                <div className="text-4xl group-hover:scale-110 transition-transform">🌸</div>
                 <div className="space-y-1 text-center sm:text-left">
-                  <h3 className="text-sm font-black text-primary uppercase tracking-widest">{t(`vending.types.${txn.product}`) || txn.product}</h3>
-                  <p className="text-xs text-text-muted font-medium">{txn.podName}</p>
+                  <h3 className="text-sm font-black text-primary uppercase tracking-widest">{txn.product_name}</h3>
+                  <p className="text-xs text-text-muted font-medium">{txn.machine_name}</p>
+                  <div className="text-[10px] font-black text-primary/60">₹{txn.amount}</div>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">

@@ -163,6 +163,7 @@ class Transaction(db.Model):
             'transaction_id': self.transaction_id,
             'session_id':     self.session_id,
             'machine_id':     self.machine_id,
+            'machine_name':   self.machine.name if self.machine else 'Sahayaa Pod',
             'product_id':     self.product_id,
             'product_name':   self.product.name if self.product else '',
             'amount':         self.amount,
