@@ -1,0 +1,49 @@
+# --- OS Files ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- IDE/Editor Settings ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Dependencies/Builds ---
+node_modules/
+/vendor/
+/build/
+/dist/
+target/
+*.bin
+*.dll
+*.exe
+*.so
+*.dylib
+
+# --- Environment & Secret Files ---
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.secret
+
+# --- Logs & Temp ---
+*.log
+logs/
+*.tmp
+temp/
+.sass-cache/
+.eslintcache
+
+# --- Python specific ---
+__pycache__/
+*.py[cod]
+.venv/
+env/
+venv/
