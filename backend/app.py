@@ -1570,6 +1570,7 @@ def find_nearby_pharmacies():
 (
   node["amenity"="pharmacy"](around:{radius},{lat},{lng});
   way["amenity"="pharmacy"](around:{radius},{lat},{lng});
+  relation["amenity"="pharmacy"](around:{radius},{lat},{lng});
 );
 out center 20;
 """

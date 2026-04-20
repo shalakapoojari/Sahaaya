@@ -32,15 +32,25 @@ export const PharmacyPage = () => {
         }
       },
       (err) => {
-        setError("Location access denied. Please enable location permissions.");
+        if (err.code === err.PERMISSION_DENIED) {
+          setError("Location access denied. Please enable location permissions.");
+        } else if (err.code === err.TIMEOUT) {
+          setError("Location request timed out. Try again or check your signal.");
+        } else {
+          setError("Unable to retrieve your location.");
+        }
         setLoading(false);
       },
-      { timeout: 10_000 }
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 }
     );
   }, [radius]);
 
   const openMaps = (p: Pharmacy) => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`, "_blank");
+    const queryStr = p.address && p.address !== "Address unavailable" 
+      ? `${p.name}, ${p.address}` 
+      : p.name;
+    const query = encodeURIComponent(queryStr);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank");
   };
 
   return (
