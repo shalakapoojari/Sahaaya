@@ -352,9 +352,6 @@ class Subscription(db.Model):
 # ─────────────────────────────────────────────
 #  HELPER FUNCTIONS
 # ─────────────────────────────────────────────
-with app.app_context():
-    db.create_all()
-
 
 def generate_transaction_id():
     return f"SAH-{datetime.utcnow().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
