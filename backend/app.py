@@ -18,15 +18,15 @@ from sqlalchemy import func, desc, and_, or_
 #  APP & CONFIG
 # ─────────────────────────────────────────────
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI", "sqlite:///sahayaa.db")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY")
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "super-secret-jwt-key")
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "super-secret-flask-key")
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "Authorization", "X-Session-Id"])
 
 
 # ─────────────────────────────────────────────
@@ -400,7 +400,7 @@ def reverse_geocode(lat, lng):
 
 
 def find_nearest_machine_with_stock(lat, lng, product_id=None, qty=1):
-    MAX_DISTANCE_KM = 5   # 🔥 adjust (3–10 km depending on your use case)
+    MAX_DISTANCE_KM = 50000   # 🔥 Allow global distance for deployment testing
 
     machines = Machine.query.filter_by(status='active').all()
     best, best_dist = None, float('inf')
@@ -1902,7 +1902,7 @@ def seed_database():
 
     # Seed admin user
     admin = User(email='admin@sahayaa.in', name='Admin', role='admin')
-    admin.set_password('sahayaa@admin2025')
+    admin.set_password('admin123')
     db.session.add(admin)
 
     db.session.commit()
