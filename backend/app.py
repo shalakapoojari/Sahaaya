@@ -19,7 +19,7 @@ from sqlalchemy import func, desc, and_, or_
 # ─────────────────────────────────────────────
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY")
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 
@@ -354,7 +354,7 @@ class Subscription(db.Model):
 with app.app_context():
     db.create_all()
 
-    
+
 def generate_transaction_id():
     return f"SAH-{datetime.utcnow().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
 
