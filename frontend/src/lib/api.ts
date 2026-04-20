@@ -1,6 +1,6 @@
 
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+const BASE = process.env.NEXT_PUBLIC_API_URL || "https://sahaaya-05yx.onrender.com";
 
 // ─── Core fetch wrapper ──────────────────────────────────────────────────────
 
